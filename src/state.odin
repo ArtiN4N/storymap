@@ -77,7 +77,7 @@ initialState :: proc() -> State {
 
         logicalHeight = 800,
         topViewLine = 0,
-        maxViewLines = (800 - TEXTMARGIN * 2) / LINEHEIGHT - 1,
+        maxViewLines = (800 - TEXTMARGIN * 2 - INFOHEIGHT) / LINEHEIGHT - 1,
 
         fullscreen = false,
         flags = {},

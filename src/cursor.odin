@@ -21,7 +21,7 @@ drawCursor :: proc(state: State) {
     characterSize := rl.MeasureTextEx(state.page.font, "a", state.page.fontSize, state.page.fontSpacing)
     cursor : rl.Rectangle = {
         x = TEXTMARGIN + SPINEWIDTH + (characterSize.x + state.page.fontSpacing) * cast(f32) state.column,
-        y = TEXTMARGIN + characterSize.y * cast(f32) visualLine,
+        y = TEXTMARGIN + characterSize.y * cast(f32) visualLine + INFOHEIGHT,
         width = CURSORWIDTH,
         height = LINEHEIGHT
     }
@@ -129,11 +129,14 @@ updateCursor :: proc(state: ^State) {
 
     wheelMove := rl.GetMouseWheelMove()
     if wheelMove > 0 {
-        if state.line == state.topViewLine + state.maxViewLines - 1 {
+        if state.line == state.topViewLine + state.maxViewLines - 1 && state.topViewLine != 0 {
             state.line -= 1
         }
         state.topViewLine -= 1
     } else if wheelMove < 0 {
+        if state.line == state.topViewLine + 1 {
+            state.line += 1
+        }
         state.topViewLine += 1
     }
 
@@ -162,10 +165,6 @@ capCursor :: proc(state: ^State) {
     if state.line > state.topViewLine + state.maxViewLines - VIEWLINEBUFFER {
         state.topViewLine += 1
     } else if state.line < state.topViewLine + VIEWLINEBUFFER && state.topViewLine > 0 {
-        if state.line < len(state.page.text) - 1 {
-            state.line += 1
-        } else {
-            state.topViewLine -= 1
-        }
+        state.topViewLine -= 1
     }
 }
