@@ -15,7 +15,12 @@ State :: struct {
     line: int,
     column: int,
     cursorFrame: f32,
-    cursorCooldown: [4]f32,
+    cursorCooldown: f32,
+
+    backspaceCooldown: f32,
+    enterCooldown: f32,
+
+    heldKey: rl.KeyboardKey,
 
     page: Page,
 }
@@ -67,7 +72,12 @@ initialState :: proc() -> State {
         line = 0,
         column = 0,
         cursorFrame = 0.0,
-        cursorCooldown = {0.0, 0.0, 0.0, 0.0},
+        cursorCooldown = 0.0,
+
+        backspaceCooldown = 0.0,
+        enterCooldown = 0.0,
+
+        heldKey = rl.KeyboardKey.KEY_NULL,
 
         page = {},
     }

@@ -14,15 +14,32 @@ CURSORLINECOLOR : rl.Color : {0x2e, 0x2e, 0x3e, 0xff}
 SPINEWIDTH :: 40
 LINEHEIGHT :: 22
 
+TEXTMARGIN :: 15
+
 CURSORWIDTH :: 2
-CURSORCYCLE :: 1.0
-CURSORSPEED :: 0.15
+CURSORWAIT :: 0.3
+CURSORCYCLE :: CURSORWAIT + 0.025
+
+BACKSPACEWAIT :: 0.3
+BACKSPACECYCLE :: BACKSPACEWAIT + 0.025
+
+ENTERWAIT :: 0.3
+ENTERCYCLE :: ENTERWAIT + 0.025
+
+
+PageSelection :: struct {
+    linea: int,
+    lineb: int,
+    columna: int,
+    columnb: int,
+}
 
 Page :: struct {
     text: [dynamic]strings.Builder,
     font: rl.Font,
     fontSize: f32,
     fontSpacing: f32,
+    select: PageSelection,
 }
 
 initialPage :: proc() -> Page {
@@ -52,12 +69,12 @@ drawLineNumbers :: proc(state: State) {
     rl.DrawRectangleRec(spine, SPINECOLOR)
 
     cursorline : rl.Rectangle = {
-        0, cast(f32) (15 + state.line * LINEHEIGHT),
+        0, cast(f32) (TEXTMARGIN + state.line * LINEHEIGHT),
         cast(f32) state.screenWidth, LINEHEIGHT
     }
     rl.DrawRectangleRec(cursorline, CURSORLINECOLOR)
 
-    pos : rl.Vector2 = { 0, 15 }
+    pos : rl.Vector2 = { 0, TEXTMARGIN }
     lines := len(state.page.text)
     for i in 1..=lines {
         text := rl.TextFormat("%d", i)
@@ -73,7 +90,7 @@ drawLineNumbers :: proc(state: State) {
 }
 
 drawPageText :: proc(state: State) {
-    pos : rl.Vector2 = { 15 + SPINEWIDTH, 15 }
+    pos : rl.Vector2 = { TEXTMARGIN + SPINEWIDTH, TEXTMARGIN }
     lines := len(state.page.text)
 
     for i in 0..<lines {
@@ -92,12 +109,52 @@ drawCursor :: proc(state: State) {
 
     characterSize := rl.MeasureTextEx(state.page.font, "a", state.page.fontSize, state.page.fontSpacing)
     cursor : rl.Rectangle = {
-        x = 15 + SPINEWIDTH + (characterSize.x + state.page.fontSpacing) * cast(f32) state.column,
-        y = 15 + characterSize.y * cast(f32) state.line,
+        x = TEXTMARGIN + SPINEWIDTH + (characterSize.x + state.page.fontSpacing) * cast(f32) state.column,
+        y = TEXTMARGIN + characterSize.y * cast(f32) state.line,
         width = CURSORWIDTH,
         height = LINEHEIGHT
     }
     rl.DrawRectangleRec(cursor, CURSORCOLOR)
+}
+
+moveCursor :: proc(state: ^State) {
+    if state.heldKey == rl.KeyboardKey.KEY_NULL {
+        return
+    }
+
+    state.cursorFrame = 0.0
+
+    axis: ^int
+    direction: int
+
+    if state.heldKey == rl.KeyboardKey.LEFT {
+        direction = -1
+        axis = &state.column
+    } else if state.heldKey == rl.KeyboardKey.RIGHT {
+        direction = 1
+        axis = &state.column
+    } else if state.heldKey == rl.KeyboardKey.UP {
+        direction = -1
+        axis = &state.line
+    } else if state.heldKey == rl.KeyboardKey.DOWN {
+        direction = 1
+        axis = &state.line
+    }
+
+    if state.cursorCooldown == 0.0 {
+        axis^ += direction
+    }
+
+    state.cursorCooldown += rl.GetFrameTime()
+
+    if state.cursorCooldown >= CURSORWAIT {
+        if state.cursorCooldown >= CURSORCYCLE {
+            axis^ += direction
+            state.cursorCooldown = CURSORWAIT
+        }
+    }
+
+    capCursor(state)
 }
 
 updateCursor :: proc(state: ^State) {
@@ -106,71 +163,28 @@ updateCursor :: proc(state: ^State) {
         state.cursorFrame = 0.0
     }
 
-    if rl.IsKeyPressed(rl.KeyboardKey.RIGHT) {
-        state.column += 1
-        state.cursorFrame = 0.0
-        state.cursorCooldown = {0.0, 0.0, 0.0, 0.0}
-    }
-    if rl.IsKeyDown(rl.KeyboardKey.RIGHT) {
-        state.cursorFrame = 0.0
-        state.cursorCooldown[0] += rl.GetFrameTime()
-        if state.cursorCooldown[0] >= CURSORSPEED && state.cursorCooldown[0] < CURSORSPEED + rl.GetFrameTime() {
-            state.cursorCooldown[0] = 0.0
-            state.column += 1
-        }
-    } else {
-        state.cursorCooldown[0] = 0.0
-    }
-
-    if rl.IsKeyPressed(rl.KeyboardKey.LEFT) {
-        state.column -= 1
-        state.cursorFrame = 0.0
-        state.cursorCooldown = {0.0, 0.0, 0.0, 0.0}
-    }
-    if rl.IsKeyDown(rl.KeyboardKey.LEFT) {
-        state.cursorFrame = 0.0
-        state.cursorCooldown[1] += rl.GetFrameTime()
-        if state.cursorCooldown[1] > CURSORSPEED {
-            state.cursorCooldown[1] = 0.0
-            state.column -= 1
-        }
-    } else {
-        state.cursorCooldown[1] = 0.0
-    }
-
-    if rl.IsKeyPressed(rl.KeyboardKey.DOWN) {
-        state.line += 1
-        state.cursorFrame = 0.0
-        state.cursorCooldown = {0.0, 0.0, 0.0, 0.0}
-    }
-    if rl.IsKeyDown(rl.KeyboardKey.DOWN) {
-        state.cursorFrame = 0.0
-        state.cursorCooldown[2] += rl.GetFrameTime()
-        if state.cursorCooldown[2] > CURSORSPEED {
-            state.cursorCooldown[2] = 0.0
-            state.line += 1
-        }
-    } else {
-        state.cursorCooldown[2] = 0.0
+    if !rl.IsKeyDown(state.heldKey) {
+        state.heldKey = rl.KeyboardKey.KEY_NULL
     }
 
     if rl.IsKeyPressed(rl.KeyboardKey.UP) {
-        state.line -= 1
-        state.cursorFrame = 0.0
-        state.cursorCooldown = {0.0, 0.0, 0.0, 0.0}
+        state.heldKey = rl.KeyboardKey.UP
+        state.cursorCooldown = 0.0
     }
-    if rl.IsKeyDown(rl.KeyboardKey.UP) {
-        state.cursorFrame = 0.0
-        state.cursorCooldown[3] += rl.GetFrameTime()
-        if state.cursorCooldown[3] > CURSORSPEED {
-            state.cursorCooldown[3] = 0.0
-            state.line -= 1
-        }
-    } else {
-        state.cursorCooldown[3] = 0.0
+    if rl.IsKeyPressed(rl.KeyboardKey.DOWN) {
+        state.heldKey = rl.KeyboardKey.DOWN
+        state.cursorCooldown = 0.0
+    }
+    if rl.IsKeyPressed(rl.KeyboardKey.LEFT) {
+        state.heldKey = rl.KeyboardKey.LEFT
+        state.cursorCooldown = 0.0
+    }
+    if rl.IsKeyPressed(rl.KeyboardKey.RIGHT) {
+        state.heldKey = rl.KeyboardKey.RIGHT
+        state.cursorCooldown = 0.0
     }
 
-    capCursor(state)
+    moveCursor(state)
 }
 
 capCursor :: proc(state: ^State) {
@@ -189,6 +203,88 @@ capCursor :: proc(state: ^State) {
     }
 }
 
+deleteCharacter :: proc(state: ^State) {
+    work := &state.page.text[state.line].buf
+
+    if state.column > 0 {
+        ordered_remove(work, state.column - 1)
+        state.column -= 1
+    } else if state.line > 0 {
+        line := state.page.text[state.line]
+        ordered_remove(&state.page.text, state.line)
+
+        old_len := strings.builder_len(state.page.text[state.line - 1])
+        strings.write_string(&state.page.text[state.line - 1], strings.to_string(line))
+        state.line -= 1
+        state.column = old_len
+    }
+
+    capCursor(state)
+}
+
+backspacePage :: proc(state: ^State) {
+    if !rl.IsKeyDown(rl.KeyboardKey.BACKSPACE) {
+        return
+    }
+
+    if rl.IsKeyPressed(rl.KeyboardKey.BACKSPACE) {
+        state.backspaceCooldown = 0.0
+    }
+
+    if state.backspaceCooldown == 0.0 {
+        deleteCharacter(state)
+    }
+
+    state.backspaceCooldown += rl.GetFrameTime()
+
+    if state.backspaceCooldown >= BACKSPACEWAIT {
+        if state.backspaceCooldown >= BACKSPACECYCLE {
+            deleteCharacter(state)
+            state.backspaceCooldown = BACKSPACEWAIT
+        }
+    }
+}
+
+addNewLine :: proc(state: ^State) {
+    work := &state.page.text[state.line].buf
+
+    pre := work[:state.column]
+    post := work[state.column:]
+    strings.builder_reset(&state.page.text[state.line])
+    strings.write_bytes(&state.page.text[state.line], pre)
+
+    inject_at(&state.page.text, state.line + 1, strings.builder_make())
+    strings.write_bytes(&state.page.text[state.line + 1], post)
+
+    state.line += 1
+    state.column = 0
+
+    capCursor(state)
+}
+
+enterPage :: proc(state: ^State) {
+    if !rl.IsKeyDown(rl.KeyboardKey.ENTER) {
+        return
+    }
+
+    if rl.IsKeyPressed(rl.KeyboardKey.ENTER) {
+        state.enterCooldown = 0.0
+    }
+
+    if state.enterCooldown == 0.0 {
+        addNewLine(state)
+    }
+
+    state.enterCooldown += rl.GetFrameTime()
+
+    if state.enterCooldown >= ENTERWAIT {
+        if state.enterCooldown >= ENTERCYCLE {
+            addNewLine(state)
+            state.enterCooldown = ENTERWAIT
+        }
+    }
+}
+
 writePage :: proc(state: ^State) {
     key : int = cast(int) rl.GetCharPressed()
 
@@ -199,44 +295,27 @@ writePage :: proc(state: ^State) {
             key = cast(int) rl.GetCharPressed()
             continue
         }
+
+        editLength := state.screenWidth - 2 * TEXTMARGIN - SPINEWIDTH
+        sb := strings.builder_make()
+        strings.write_string(&sb, strings.to_string(state.page.text[state.line]))
+        strings.write_byte(&sb, 0x42)
+        textpos := rl.MeasureTextEx(
+            state.page.font, strings.to_cstring(&sb), state.page.fontSize, state.page.fontSpacing
+        )
+        if textpos.x > cast(f32) editLength {
+            addNewLine(state)
+            work = &state.page.text[state.line].buf
+        }
+
         inject_at(work, state.column, cast(u8) key)
         state.column += 1
         key = cast(int) rl.GetCharPressed()
     }
 
-    if rl.IsKeyPressed(rl.KeyboardKey.BACKSPACE) {
-        if state.column > 0 {
-            ordered_remove(work, state.column - 1)
-            state.column -= 1
-        } else if state.line > 0 {
-            line := state.page.text[state.line]
-            ordered_remove(&state.page.text, state.line)
+    backspacePage(state)
 
-            old_len := strings.builder_len(state.page.text[state.line - 1])
-            strings.write_string(&state.page.text[state.line - 1], strings.to_string(line))
-            state.line -= 1
-            state.column = old_len
-        }
-    }
-
-    capCursor(state)
-
-    work = &state.page.text[state.line].buf
-
-    if rl.IsKeyPressed(rl.KeyboardKey.ENTER) {
-        pre := work[:state.column]
-        post := work[state.column:]
-        strings.builder_reset(&state.page.text[state.line])
-        strings.write_bytes(&state.page.text[state.line], pre)
-
-        inject_at(&state.page.text, state.line + 1, strings.builder_make())
-        strings.write_bytes(&state.page.text[state.line + 1], post)
-
-        state.line += 1
-        state.column = 0
-    }
-
-    capCursor(state)
+    enterPage(state)
 }
 
 main :: proc() {
