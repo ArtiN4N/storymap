@@ -8,6 +8,12 @@ State :: struct {
     screenWidth: i32,
     screenHeight: i32,
 
+    editWidth: i32,
+
+    logicalHeight: i32,
+    topViewLine: int,
+    maxViewLines: int,
+
     fullscreen: bool,
     flags: rl.ConfigFlags,
     shortcuts: map[rl.KeyboardKey]Shortcut,
@@ -39,6 +45,8 @@ fullscreenShortcut :: proc(state: ^State) {
         mon := rl.GetCurrentMonitor()
         state.screenWidth = rl.GetMonitorWidth(mon)
         state.screenHeight = rl.GetMonitorHeight(mon)
+        state.logicalHeight = state.screenHeight * 3
+        state.maxViewLines = cast(int) (state.screenHeight - TEXTMARGIN * 2) / LINEHEIGHT
     }
 
     rl.ToggleFullscreen()
@@ -64,6 +72,12 @@ initialState :: proc() -> State {
 
         screenWidth = 800,
         screenHeight = 800,
+
+        editWidth = 800 - SPINEWIDTH - TEXTMARGIN * 2,
+
+        logicalHeight = 800,
+        topViewLine = 0,
+        maxViewLines = (800 - TEXTMARGIN * 2) / LINEHEIGHT - 1,
 
         fullscreen = false,
         flags = {},
@@ -119,4 +133,6 @@ updateScreenSize :: proc(state: ^State) {
 
     state.screenWidth = rl.GetScreenWidth()
     state.screenHeight = rl.GetScreenHeight()
+    state.logicalHeight = state.screenHeight * 3
+    state.maxViewLines = cast(int) (state.screenHeight - TEXTMARGIN * 2) / LINEHEIGHT
 }
