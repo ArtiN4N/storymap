@@ -223,10 +223,10 @@ writePage :: proc(state: ^State) {
         if textpos.x > cast(f32) state.editWidth {
             if key != ' ' {
                 addNewLine(state)
-                prevwork := &state.page.text[state.line - 1].buf
-                if alphanumeric[key] && alphanumeric[prevwork[len(prevwork) - 1]] {
-                    append(prevwork, '-')
-                }
+                //prevwork := &state.page.text[state.line - 1].buf
+                //if alphanumeric[key] && alphanumeric[prevwork[len(prevwork) - 1]] {
+                    //strings.write_string(&state.page.text[state.line - 1], "-")
+                //}
                 work = &state.page.text[state.line].buf
             }
         }
