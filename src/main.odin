@@ -18,11 +18,7 @@ main :: proc() {
     state := initialState()
     defer destroyState(&state)
 
-    addConfigFlag(&state, rl.ConfigFlag.VSYNC_HINT)
-    addConfigFlag(&state, rl.ConfigFlag.WINDOW_RESIZABLE)
-    addConfigFlag(&state, rl.ConfigFlag.MSAA_4X_HINT)
-    addConfigFlag(&state, rl.ConfigFlag.WINDOW_HIGHDPI)
-    rl.SetConfigFlags(state.flags)
+    initializeConfigFlags(&state.window.flagManager)
 
     rl.SetExitKey(rl.KeyboardKey.KEY_NULL)
 
