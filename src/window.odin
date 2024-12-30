@@ -55,13 +55,13 @@ maxViewLines :: proc(height: int) -> int {
 // This assumes a mono font, where all characters have equal sizings
 characterWidth :: proc(font: rl.Font, fontSize, fontSpacing: f32) -> int {
     charSize := rl.MeasureTextEx(font, "a", fontSize, fontSpacing)
-    return charSize.x + fontSpacing
+    return cast(int) (charSize.x + fontSpacing)
 }
 
 // A procedure that returns the maximum number of characters that can fit in a line of the editor.
 // This is used to ensure that all writing is visually contained in TOTAL_TEXT_WIDTH.
 maxCharactersPerLine :: proc(characterWidth: int, fontSpacing: f32) -> int {
-    return TOTAL_TEXT_WIDTH / characterWidth - fontSpacing
+    return TOTAL_TEXT_WIDTH / characterWidth - cast(int) fontSpacing
 }
 
 // A procedure that changes a WindowObjects' size, and updates necessary information about editor view.
