@@ -165,36 +165,36 @@ countPageWords :: proc(state: ^State) -> int {
 }
 
 deleteCharacter :: proc(state: ^State) {
-    work := &state.page.text[state.line].buf
+    work := &state.page.text[state.cursor.line].buf
 
     alphanumeric := ALPHANUMERIC
 
-    if state.column > 0 {
-        char : u8 = work[state.column - 1]
-        ordered_remove(work, state.column - 1)
-        state.column -= 1
+    if state.cursor.column > 0 {
+        char : u8 = work[state.cursor.column - 1]
+        ordered_remove(work, state.cursor.column - 1)
+        state.cursor.column -= 1
 
         if alphanumeric[char] {
-            if state.column == 0 {
+            if state.cursor.column == 0 {
                 state.page.words -= 1
-            } else if !alphanumeric[work[state.column - 1]] {
+            } else if !alphanumeric[work[state.cursor.column - 1]] {
                 state.page.words -= 1
             }
         }
-    } else if state.line > 0 {
-        line := &state.page.text[state.line]
-        ordered_remove(&state.page.text, state.line)
+    } else if state.cursor.line > 0 {
+        line := &state.page.text[state.cursor.line]
+        ordered_remove(&state.page.text, state.cursor.line)
 
-        old_len := strings.builder_len(state.page.text[state.line - 1])
-        strings.write_string(&state.page.text[state.line - 1], strings.to_string(line^))
-        state.line -= 1
-        state.column = old_len
+        old_len := strings.builder_len(state.page.text[state.cursor.line - 1])
+        strings.write_string(&state.page.text[state.cursor.line - 1], strings.to_string(line^))
+        state.cursor.line -= 1
+        state.cursor.column = old_len
 
-        if state.column > 0 {
-            char : u8 = state.page.text[state.line].buf[state.column - 1]
+        if state.cursor.column > 0 {
+            char : u8 = state.page.text[state.cursor.line].buf[state.cursor.column - 1]
             if alphanumeric[char] {
-                if strings.builder_len(state.page.text[state.line]) > state.column {
-                    char = state.page.text[state.line].buf[state.column]
+                if strings.builder_len(state.page.text[state.cursor.line]) > state.cursor.column {
+                    char = state.page.text[state.cursor.line].buf[state.cursor.column]
                     if alphanumeric[char] {
                         state.page.words -= 1
                     }
@@ -206,7 +206,7 @@ deleteCharacter :: proc(state: ^State) {
     }
 
     flagActivePage(state)
-    state.cursorFrame = 0.0
+    state.cursor.cursorFrame = 0.0
 
     capCursor(state)
 }
@@ -235,21 +235,21 @@ backspacePage :: proc(state: ^State) {
 }
 
 addNewLine :: proc(state: ^State) {
-    work := &state.page.text[state.line].buf
+    work := &state.page.text[state.cursor.line].buf
 
-    pre := work[:state.column]
-    post := work[state.column:]
-    strings.builder_reset(&state.page.text[state.line])
-    strings.write_bytes(&state.page.text[state.line], pre)
+    pre := work[:state.cursor.column]
+    post := work[state.cursor.column:]
+    strings.builder_reset(&state.page.text[state.cursor.line])
+    strings.write_bytes(&state.page.text[state.cursor.line], pre)
 
-    inject_at(&state.page.text, state.line + 1, strings.builder_make())
-    strings.write_bytes(&state.page.text[state.line + 1], post)
+    inject_at(&state.page.text, state.cursor.line + 1, strings.builder_make())
+    strings.write_bytes(&state.page.text[state.cursor.line + 1], post)
 
-    state.line += 1
-    state.column = 0
+    state.cursor.line += 1
+    state.cursor.column = 0
 
     flagActivePage(state)
-    state.cursorFrame = 0.0
+    state.cursor.cursorFrame = 0.0
 
     alphanumeric := ALPHANUMERIC
 
@@ -289,7 +289,7 @@ enterPage :: proc(state: ^State) {
 writePage :: proc(state: ^State) {
     key : int = cast(int) rl.GetCharPressed()
 
-    work := &state.page.text[state.line].buf
+    work := &state.page.text[state.cursor.line].buf
 
     alphanumeric := ALPHANUMERIC
 
@@ -300,7 +300,7 @@ writePage :: proc(state: ^State) {
         }
 
         /*sb := strings.builder_make()
-        strings.write_string(&sb, strings.to_string(state.page.text[state.line]))
+        strings.write_string(&sb, strings.to_string(state.page.text[state.cursor.line]))
         strings.write_byte(&sb, 'a')
         textpos := rl.MeasureTextEx(
             state.page.font, strings.to_cstring(&sb), state.page.fontSize, state.page.fontSpacing
@@ -311,24 +311,24 @@ writePage :: proc(state: ^State) {
         if textpos.x > cast(f32) state.editWidth {
             if key != ' ' {
                 addNewLine(state)
-                work = &state.page.text[state.line].buf
+                work = &state.page.text[state.cursor.line].buf
             }
         }*/
 
-        inject_at(work, state.column, cast(u8) key)
+        inject_at(work, state.cursor.column, cast(u8) key)
         if alphanumeric[key] {
-            if state.column == 0 {
+            if state.cursor.column == 0 {
                 state.page.words += 1
                 state.page.monotonicWords += 1
-            } else if !alphanumeric[work[state.column - 1]] {
+            } else if !alphanumeric[work[state.cursor.column - 1]] {
                 state.page.words += 1
                 state.page.monotonicWords += 1
             }
         }
 
-        state.column += 1
+        state.cursor.column += 1
         flagActivePage(state)
-        state.cursorFrame = 0.0
+        state.cursor.cursorFrame = 0.0
 
         key = cast(int) rl.GetCharPressed()
     }

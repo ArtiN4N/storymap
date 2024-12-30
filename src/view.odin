@@ -48,7 +48,7 @@ drawPageText :: proc(state: State) {
 }
 
 drawLineNumbers :: proc(state: State) {
-    visualLine := state.line - state.window.topViewLine
+    visualLine := state.cursor.line - state.window.topViewLine
 
     spine : rl.Rectangle = { 0, 0, SPINE_WIDTH, cast(f32) state.window.height }
     rl.DrawRectangleRec(spine, SPINE_COLOR)
