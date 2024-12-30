@@ -5,6 +5,9 @@ import "core:fmt"
 
 import rl "vendor:raylib"
 
+CURSORCOLOR : rl.Color : {0x10, 0x7a, 0xb0, 0xff}
+CURSORLINECOLOR : rl.Color : {0x2e, 0x2e, 0x3e, 0xff}
+
 CURSORWIDTH :: 2
 CURSORWAIT :: 0.3
 CURSORCYCLE :: CURSORWAIT + 0.025
@@ -72,6 +75,8 @@ moveCursor :: proc(state: ^State) {
         if rl.IsKeyDown(rl.KeyboardKey.LEFT_CONTROL) {
             direction = state.maxViewLines + state.topViewLine - state.line
         }
+    } else {
+        return
     }
 
     if state.cursorCooldown == 0.0 {
@@ -134,7 +139,7 @@ updateCursor :: proc(state: ^State) {
         }
         state.topViewLine -= 1
     } else if wheelMove < 0 {
-        if state.line == state.topViewLine + 1 {
+        if state.line == state.topViewLine + 1 || state.line == state.topViewLine  {
             state.line += 1
         }
         state.topViewLine += 1
