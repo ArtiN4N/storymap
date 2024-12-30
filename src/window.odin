@@ -68,7 +68,6 @@ maxCharactersPerLine :: proc(characterWidth: int, fontSpacing: f32) -> int {
 changeWindowSize :: proc(window: ^WindowObject, width, height: int) {
     window.width = width
     window.height = height
-    //logicalHeight = window.height * 3
 }
 
 // A procedure that toggles fullscreen on a WindowObject, and changes its size if necessary.
@@ -82,7 +81,7 @@ toggleFullscreen :: proc(window: ^WindowObject) {
     // the screen size to the monitor size before the toggle function is called.
     if window.flagManager.fullscreen {
         mon := rl.GetCurrentMonitor()
-        changeWindowSize(window, rl.GetMonitorWidth(mon), rl.GetMonitorHeight(mon))
+        changeWindowSize(window, cast(int) rl.GetMonitorWidth(mon), cast(int) rl.GetMonitorHeight(mon))
     }
 
     rl.ToggleFullscreen()
@@ -90,9 +89,9 @@ toggleFullscreen :: proc(window: ^WindowObject) {
 
 // A procedure that updates a WindowObjects' data to the new screen size.
 updateWindowSize :: proc(window: ^WindowObject) {
-    if window.fullscreen {
+    if window.flagManager.fullscreen {
         return
     }
 
-    changeWindowSize(window, rl.GetScreenWidth(), rl.GetScreenHeight())
+    changeWindowSize(window, cast(int) rl.GetScreenWidth(), cast(int) rl.GetScreenHeight())
 }

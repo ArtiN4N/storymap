@@ -5,15 +5,15 @@ import "core:strings"
 
 import rl "vendor:raylib"
 
-FBOXWIDTH :: 600
-FBOXHEIGHT :: 300
+FILEBOX_WIDTH :: 600
+FILEBOX_HEIGHT :: 300
 
 FileBox :: struct {
-    cursor: u32,
+    cursor: int,
     dir: cstring,
     active: bool,
     dirItems: [3]rl.FilePathList,
-    itemsCount: u32,
+    itemsCount: int,
 }
 
 initialFileBox :: proc() -> FileBox {
@@ -34,7 +34,7 @@ setFileBox :: proc(state: ^State) {
     }
 
     // +1 for previous dir
-    state.fBox.itemsCount = state.fBox.dirItems[0].count + state.fBox.dirItems[1].count + state.fBox.dirItems[2].count + 1
+    state.fBox.itemsCount = cast(int) (state.fBox.dirItems[0].count + state.fBox.dirItems[1].count + state.fBox.dirItems[2].count) + 1
 
     // -1 for fake dirs
     for k in 0..<state.fBox.dirItems[0].count {
@@ -74,9 +74,9 @@ updateFileBox :: proc(state: ^State) {
     lineHeight : f32 = 18
 
     fBox : rl.Rectangle = {
-        cast(f32) (state.screenWidth - FBOXWIDTH) / 2,
-        cast(f32) (state.screenHeight - FBOXHEIGHT) / 2,
-        FBOXWIDTH, FBOXHEIGHT
+        cast(f32) (state.window.width - FILEBOX_WIDTH) / 2,
+        cast(f32) (state.window.height - FILEBOX_HEIGHT) / 2,
+        FILEBOX_WIDTH, FILEBOX_HEIGHT
     }
 
     //Box.y + 10.0 + cast(f32) (state.fBox.cursor + 1) * lineHeight
@@ -88,10 +88,10 @@ updateFileBox :: proc(state: ^State) {
             hoverPos = -1
         }
 
-        state.fBox.cursor = cast(u32) hoverPos
+        state.fBox.cursor = cast(int) hoverPos
     }
 
-    if rl.IsKeyPressed(rl.KeyboardKey.UP) {
+    if rl.IsKeyPressed(.UP) {
         state.fBox.cursor -= 1
 
         if state.fBox.cursor < 0 {
@@ -99,7 +99,7 @@ updateFileBox :: proc(state: ^State) {
         }
     }
 
-    if rl.IsKeyPressed(rl.KeyboardKey.DOWN) {
+    if rl.IsKeyPressed(.DOWN) {
         state.fBox.cursor += 1
 
         if state.fBox.cursor >= state.fBox.itemsCount {
@@ -107,7 +107,7 @@ updateFileBox :: proc(state: ^State) {
         }
     }
 
-    if rl.IsKeyPressed(rl.KeyboardKey.ENTER) || (rl.CheckCollisionPointRec(mousePos, fBox) && rl.IsMouseButtonPressed(rl.MouseButton.LEFT)) {
+    if rl.IsKeyPressed(.ENTER) || (rl.CheckCollisionPointRec(mousePos, fBox) && rl.IsMouseButtonPressed(rl.MouseButton.LEFT)) {
         if state.fBox.cursor < 0 || state.fBox.cursor >= state.fBox.itemsCount {
             return
         }
@@ -118,7 +118,7 @@ updateFileBox :: proc(state: ^State) {
             closeFileBox(state)
             setFileBox(state)
         } else {
-            i : u32 = 0
+            i : int = 0
             l := 0
             str : ^cstring
             skip := false
@@ -184,9 +184,9 @@ drawFileBox :: proc(state: State) {
     lineHeight : f32 = 18
 
     fBox : rl.Rectangle = {
-        cast(f32) (state.screenWidth - FBOXWIDTH) / 2,
-        cast(f32) (state.screenHeight - FBOXHEIGHT) / 2,
-        FBOXWIDTH, FBOXHEIGHT
+        cast(f32) (state.window.width - FILEBOX_WIDTH) / 2,
+        cast(f32) (state.window.height - FILEBOX_HEIGHT) / 2,
+        FILEBOX_WIDTH, FILEBOX_HEIGHT
     }
 
     tempBox := fBox
@@ -196,35 +196,35 @@ drawFileBox :: proc(state: State) {
     tempBox.height += 2
     rl.DrawRectangleRec(tempBox, rl.WHITE)
 
-    rl.DrawRectangleRec(fBox, EDITORCOLOR)
+    rl.DrawRectangleRec(fBox, EDITOR_COLOR)
 
     dirBox : rl.Rectangle = {
-        cast(f32) (state.screenWidth - FBOXWIDTH) / 2,
-        cast(f32) (state.screenHeight - FBOXHEIGHT) / 2,
-        FBOXWIDTH, lineHeight + 10
+        cast(f32) (state.window.width - FILEBOX_WIDTH) / 2,
+        cast(f32) (state.window.height - FILEBOX_HEIGHT) / 2,
+        FILEBOX_WIDTH, lineHeight + 10
     }
-    rl.DrawRectangleRec(dirBox, INFOCOLOR)
+    rl.DrawRectangleRec(dirBox, INFO_COLOR)
 
     pos : rl.Vector2 = { fBox.x + 5, fBox.y + 5 }
     rl.DrawTextEx(
         state.page.font, state.fBox.dir,
-        pos, fontSize, state.page.fontSpacing, TEXTCOLOR
+        pos, fontSize, state.page.fontSpacing, TEXT_COLOR
     )
 
     if state.fBox.cursor >= 0 && state.fBox.cursor < state.fBox.itemsCount {
         hoverRec : rl.Rectangle = {
-            cast(f32) (state.screenWidth - FBOXWIDTH) / 2,
+            cast(f32) (state.window.width - FILEBOX_WIDTH) / 2,
             fBox.y + 10.0 + cast(f32) (state.fBox.cursor + 1) * lineHeight,
-            FBOXWIDTH, lineHeight
+            FILEBOX_WIDTH, lineHeight
         }
-        rl.DrawRectangleRec(hoverRec, CURSORLINECOLOR)
+        rl.DrawRectangleRec(hoverRec, CURSOR_LINE_COLOR)
     }
 
     pos.y += 5
     pos.y += lineHeight
     rl.DrawTextEx(
         state.page.font, "../",
-        pos, fontSize, state.page.fontSpacing, TEXTCOLOR
+        pos, fontSize, state.page.fontSpacing, TEXT_COLOR
     )
 
     for i in 0..<state.fBox.dirItems[0].count {
@@ -248,7 +248,7 @@ drawFileBox :: proc(state: State) {
         pos.y += lineHeight
         rl.DrawTextEx(
             state.page.font, strings.to_cstring(&sb),
-            pos, fontSize, state.page.fontSpacing, TEXTCOLOR
+            pos, fontSize, state.page.fontSpacing, TEXT_COLOR
         )
 
         strings.builder_destroy(&sb)
@@ -266,7 +266,7 @@ drawFileBox :: proc(state: State) {
             pos.y += lineHeight
             rl.DrawTextEx(
                 state.page.font, fileName,
-                pos, fontSize, state.page.fontSpacing, TEXTCOLOR
+                pos, fontSize, state.page.fontSpacing, TEXT_COLOR
             )
         }
     }
