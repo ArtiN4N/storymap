@@ -16,17 +16,17 @@ TEXT_MARGIN :: 15
 drawPageText :: proc(state: State) {
     pos : rl.Vector2 = { TEXT_MARGIN + SPINE_WIDTH, TEXT_MARGIN + INFO_HEIGHT }
 
-    lines := state.window.topViewLine + maxViewLines(state.window.height) + 1
-    if lines > len(state.page.text) {
-        lines = len(state.page.text)
+    lines := state.page.topViewLine + maxViewLines(state.window.height) + 1
+    if lines > len(state.page.editText) {
+        lines = len(state.page.editText)
     }
 
     sb := strings.builder_make()
 
-    for i in state.window.topViewLine..<lines {
-        splits := state.page.textSplits[state.window.topViewLine + i]
+    for i in state.page.topViewLine..<lines {
+        splits := state.page.textSplits[state.page.topViewLine + i]
 
-        strings.write_string(&sb, strings.to_string(state.page.text[state.window.topViewLine + i]))
+        strings.write_string(&sb, strings.to_string(state.page.editText[state.page.topViewLine + i]))
 
         j := 0
         splitCount := len(splits)
@@ -48,7 +48,7 @@ drawPageText :: proc(state: State) {
 }
 
 drawLineNumbers :: proc(state: State) {
-    visualLine := state.cursor.line - state.window.topViewLine
+    visualLine := state.cursor.line - state.page.topViewLine
 
     spine : rl.Rectangle = { 0, 0, SPINE_WIDTH, cast(f32) state.window.height }
     rl.DrawRectangleRec(spine, SPINE_COLOR)
@@ -60,14 +60,14 @@ drawLineNumbers :: proc(state: State) {
     rl.DrawRectangleRec(cursorline, CURSOR_LINE_COLOR)
 
     pos : rl.Vector2 = { 0, TEXT_MARGIN + INFO_HEIGHT }
-    lines := state.window.topViewLine + maxViewLines(state.window.height) + 1
-    if lines > len(state.page.text) {
-        lines = len(state.page.text)
+    lines := state.page.topViewLine + maxViewLines(state.window.height) + 1
+    if lines > len(state.page.editText) {
+        lines = len(state.page.editText)
     }
 
     fmt.println(lines)
     fmt.println(len(state.page.textSplits))
-    for i in state.window.topViewLine..<lines {
+    for i in state.page.topViewLine..<lines {
         splits := state.page.textSplits[i]
 
         splitCount := len(splits)

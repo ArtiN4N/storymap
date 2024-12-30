@@ -76,9 +76,7 @@ resetState :: proc(state: ^State) {
     state.heldKey = .KEY_NULL
 
     state.menuActive = false
-
-    resetWindow(&state.window)
-
+    
     destroyPage(&state.page)
     setPage(state)
 }

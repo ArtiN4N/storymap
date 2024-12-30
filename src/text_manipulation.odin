@@ -11,6 +11,13 @@ ALPHANUMERIC :: [?]bool{
     0x61..=0x7a = true,
 }
 
+// A procedure that updates the state to reflect that changes have just been made
+flagActivePage :: proc(page: ^Page, cursor: ^Cursor) {
+    page.timeSinceLastUpdate = 0.0
+    page.unsaved = true
+    cursor.cursorFrame = 0.0
+}
+
 // A procedure that counts the words in a string.
 // Words are defined as a collection of 1 or more alphanumeric characters,
 // seperated by non-alphanumeric characters, and the beggining and end of a line.
@@ -88,6 +95,8 @@ addCharacterToEdit :: proc(page: ^Page, editText: ^[dynamic]strings.Builder, cur
     if alphanumeric[toAdd] && !alphanumeric[prevChar] && !alphanumeric[nextChar] {
         incrementWordCount(page, 1)
     }
+
+    flagActivePage(page, cursor)
 }
 
 // A procedure that adds a string to a spot in the edit text array.
@@ -106,6 +115,8 @@ addStringToEdit :: proc(page: ^Page, editText: ^[dynamic]strings.Builder, cursor
     inject_at(buf, column, toAdd)
 
     incrementWordCount(page, countWordsInString(toAdd, prevChar, nextChar))
+
+    flagActivePage(page, cursor)
 }
 
 // A procedure that adds a newline to the edit text.
@@ -140,6 +151,8 @@ addNewLineToEdit :: proc(page: ^Page, editText: ^[dynamic]strings.Builder, curso
             incrementWordCount(page, 1)
         }
     }
+
+    flagActivePage(page, cursor)
 }
 
 // A procedure that deletes a section of text from the edit text array.
@@ -204,4 +217,6 @@ removeSectionFromEdit :: proc(page: ^Page, editText: ^[dynamic]strings.Builder, 
         ordered_remove(editText, readLine)
         strings.builder_destroy(readBuilder)
     }
+
+    flagActivePage(page, cursor)
 }

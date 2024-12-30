@@ -15,9 +15,9 @@ INACTIVE_TIMER :: 1.0
 
 Page :: struct {
     editText: [dynamic]strings.Builder,
-
-    text: [dynamic]strings.Builder,
     textSplits: [dynamic][dynamic]int,
+    visualLines: int,
+
     font: rl.Font,
     fontSize: f32,
     fontSpacing: f32,
@@ -26,6 +26,10 @@ Page :: struct {
     extension: string,
     path: cstring,
     unsaved: bool,
+
+    // The first line number to be displayed in the editor.
+    topViewLine: int,
+    bottomViewLine: int,
 
     words: int,
     sessionWords: int,
@@ -47,8 +51,10 @@ initialPage :: proc(state: State) -> Page {
     rl.ChangeDirectory(rl.GetApplicationDirectory())
 
     return {
-        text = make([dynamic]strings.Builder),
+        editText = make([dynamic]strings.Builder),
         textSplits = make([dynamic][dynamic]int),
+        visualLines = 0,
+
         font = rl.LoadFontEx("fonts/Noto_Sans_Mono/NotoSansMono-VariableFont_wdth,wght.ttf", 40, cpoints, 0),
         fontSize = 22,
         fontSpacing = 2,
@@ -57,6 +63,9 @@ initialPage :: proc(state: State) -> Page {
         extension = ".txt",
         path = "",
         unsaved = false,
+
+        topViewLine = 0,
+        bottomViewLine = 0,
 
         words = 0,
         sessionWords = 0,
@@ -71,10 +80,10 @@ initialPage :: proc(state: State) -> Page {
 
 destroyPage :: proc(page: ^Page) {
     // unload builders in text
-    for i in 0..<len(page.text) {
-        strings.builder_destroy(&page.text[i])
+    for i in 0..<len(page.editText) {
+        strings.builder_destroy(&page.editText[i])
     }
-    delete(page.text)
+    delete(page.editText)
 
     for i in 0..<len(page.textSplits) {
         delete(page.textSplits[i])
@@ -87,7 +96,7 @@ destroyPage :: proc(page: ^Page) {
 setPage :: proc(state: ^State) {
     state.page = initialPage(state^)
     rl.SetTextureFilter(state.page.font.texture, .TRILINEAR);
-    append(&state.page.text, strings.builder_make())
+    append(&state.page.editText, strings.builder_make())
     append(&state.page.textSplits, make([dynamic]int))
 }
 
@@ -116,31 +125,31 @@ readFile :: proc(state: ^State, file: cstring) {
     characterWidth := characterWidth(state.page.font, state.page.fontSize, state.page.fontSpacing)
     maxCharacters := maxCharactersPerLine(characterWidth, state.page.fontSpacing)
 
-    append(&state.page.text, strings.builder_make())
+    append(&state.page.editText, strings.builder_make())
     append(&state.page.textSplits, make([dynamic]int))
     indx := 0
     for i in 0..<datalen {
         byt := data[i]
 
         if byt == '\n' {
-            for j := maxCharacters ; j < len(state.page.text[indx].buf) - 1 ; j += maxCharacters {
+            for j := maxCharacters ; j < len(state.page.editText[indx].buf) - 1 ; j += maxCharacters {
                 if maxCharacters < 1 {
                     break
                 }
                 append(&state.page.textSplits[indx], cast(int) j + 1)
             }
 
-            append(&state.page.text, strings.builder_make())
+            append(&state.page.editText, strings.builder_make())
             append(&state.page.textSplits, make([dynamic]int))
             indx += 1
             continue
         }
 
-        strings.write_byte(&state.page.text[indx], byt)
-        len := strings.builder_len(state.page.text[indx])
+        strings.write_byte(&state.page.editText[indx], byt)
+        len := strings.builder_len(state.page.editText[indx])
         if len == 1 && alphanumeric[byt] {
             words += 1
-        } else if alphanumeric[byt] && !alphanumeric[state.page.text[indx].buf[len - 2]] {
+        } else if alphanumeric[byt] && !alphanumeric[state.page.editText[indx].buf[len - 2]] {
             words += 1
         }
     }
@@ -154,7 +163,7 @@ countPageWords :: proc(state: ^State) -> int {
 }
 
 deleteCharacter :: proc(state: ^State) {
-    work := &state.page.text[state.cursor.line].buf
+    work := &state.page.editText[state.cursor.line].buf
 
     alphanumeric := ALPHANUMERIC
 
@@ -171,19 +180,19 @@ deleteCharacter :: proc(state: ^State) {
             }
         }
     } else if state.cursor.line > 0 {
-        line := &state.page.text[state.cursor.line]
-        ordered_remove(&state.page.text, state.cursor.line)
+        line := &state.page.editText[state.cursor.line]
+        ordered_remove(&state.page.editText, state.cursor.line)
 
-        old_len := strings.builder_len(state.page.text[state.cursor.line - 1])
-        strings.write_string(&state.page.text[state.cursor.line - 1], strings.to_string(line^))
+        old_len := strings.builder_len(state.page.editText[state.cursor.line - 1])
+        strings.write_string(&state.page.editText[state.cursor.line - 1], strings.to_string(line^))
         state.cursor.line -= 1
         state.cursor.column = old_len
 
         if state.cursor.column > 0 {
-            char : u8 = state.page.text[state.cursor.line].buf[state.cursor.column - 1]
+            char : u8 = state.page.editText[state.cursor.line].buf[state.cursor.column - 1]
             if alphanumeric[char] {
-                if strings.builder_len(state.page.text[state.cursor.line]) > state.cursor.column {
-                    char = state.page.text[state.cursor.line].buf[state.cursor.column]
+                if strings.builder_len(state.page.editText[state.cursor.line]) > state.cursor.column {
+                    char = state.page.editText[state.cursor.line].buf[state.cursor.column]
                     if alphanumeric[char] {
                         state.page.words -= 1
                     }
@@ -224,15 +233,15 @@ backspacePage :: proc(state: ^State) {
 }
 
 addNewLine :: proc(state: ^State) {
-    work := &state.page.text[state.cursor.line].buf
+    work := &state.page.editText[state.cursor.line].buf
 
     pre := work[:state.cursor.column]
     post := work[state.cursor.column:]
-    strings.builder_reset(&state.page.text[state.cursor.line])
-    strings.write_bytes(&state.page.text[state.cursor.line], pre)
+    strings.builder_reset(&state.page.editText[state.cursor.line])
+    strings.write_bytes(&state.page.editText[state.cursor.line], pre)
 
-    inject_at(&state.page.text, state.cursor.line + 1, strings.builder_make())
-    strings.write_bytes(&state.page.text[state.cursor.line + 1], post)
+    inject_at(&state.page.editText, state.cursor.line + 1, strings.builder_make())
+    strings.write_bytes(&state.page.editText[state.cursor.line + 1], post)
 
     state.cursor.line += 1
     state.cursor.column = 0
@@ -278,7 +287,7 @@ enterPage :: proc(state: ^State) {
 writePage :: proc(state: ^State) {
     key : int = cast(int) rl.GetCharPressed()
 
-    work := &state.page.text[state.cursor.line].buf
+    work := &state.page.editText[state.cursor.line].buf
 
     alphanumeric := ALPHANUMERIC
 
@@ -289,7 +298,7 @@ writePage :: proc(state: ^State) {
         }
 
         /*sb := strings.builder_make()
-        strings.write_string(&sb, strings.to_string(state.page.text[state.cursor.line]))
+        strings.write_string(&sb, strings.to_string(state.page.editText[state.cursor.line]))
         strings.write_byte(&sb, 'a')
         textpos := rl.MeasureTextEx(
             state.page.font, strings.to_cstring(&sb), state.page.fontSize, state.page.fontSpacing
@@ -300,7 +309,7 @@ writePage :: proc(state: ^State) {
         if textpos.x > cast(f32) state.editWidth {
             if key != ' ' {
                 addNewLine(state)
-                work = &state.page.text[state.cursor.line].buf
+                work = &state.page.editText[state.cursor.line].buf
             }
         }*/
 
@@ -317,7 +326,6 @@ writePage :: proc(state: ^State) {
 
         state.cursor.column += 1
         flagActivePage(state)
-        state.cursor.cursorFrame = 0.0
 
         key = cast(int) rl.GetCharPressed()
     }
@@ -325,11 +333,6 @@ writePage :: proc(state: ^State) {
     backspacePage(state)
 
     enterPage(state)
-}
-
-flagActivePage :: proc(state: ^State) {
-    state.page.timeSinceLastUpdate = 0.0
-    state.page.unsaved = true
 }
 
 updatePage :: proc(state: ^State) {
@@ -359,10 +362,10 @@ updatePage :: proc(state: ^State) {
 
 savePage :: proc(state: ^State) {
     master := strings.builder_make()
-    for i in 0..<len(state.page.text) {
-        write := strings.to_string(state.page.text[i])
+    for i in 0..<len(state.page.editText) {
+        write := strings.to_string(state.page.editText[i])
         strings.write_string(&master, write)
-        if write == "" && len(state.page.text) > 1 {
+        if write == "" && len(state.page.editText) > 1 {
             strings.write_byte(&master, '\n')
         }
     }

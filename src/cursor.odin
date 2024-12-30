@@ -48,7 +48,7 @@ drawCursor :: proc(state: State) {
         return
     }
 
-    visualLine := state.cursor.line - state.window.topViewLine
+    visualLine := state.cursor.line - state.page.topViewLine
 
     characterSize := rl.MeasureTextEx(state.page.font, "a", state.page.fontSize, state.page.fontSpacing)
     cursor : rl.Rectangle = {
@@ -85,7 +85,7 @@ moveCursor :: proc(state: ^State) {
         axis = &state.cursor.column
 
         if rl.IsKeyDown(.LEFT_CONTROL) {
-            direction = strings.builder_len(state.page.text[state.cursor.line]) - state.cursor.column
+            direction = strings.builder_len(state.page.editText[state.cursor.line]) - state.cursor.column
             if direction < 1 {
                 direction = 1
             }
@@ -95,14 +95,14 @@ moveCursor :: proc(state: ^State) {
         axis = &state.cursor.line
 
         if rl.IsKeyDown(.LEFT_CONTROL) {
-            direction = -1 * (state.cursor.line - state.window.topViewLine)
+            direction = -1 * (state.cursor.line - state.page.topViewLine)
         }
     } else if state.heldKey == .DOWN {
         direction = 1
         axis = &state.cursor.line
 
         if rl.IsKeyDown(.LEFT_CONTROL) {
-            direction = maxViewLines(state.window.height) + state.window.topViewLine - state.cursor.line
+            direction = maxViewLines(state.window.height) + state.page.topViewLine - state.cursor.line
         }
     } else {
         return
@@ -114,7 +114,7 @@ moveCursor :: proc(state: ^State) {
         if axis == &state.cursor.column {
             if axis^ < 0 {
                 state.cursor.line -= 1
-            } else if axis^ > strings.builder_len(state.page.text[state.cursor.line]) {
+            } else if axis^ > strings.builder_len(state.page.editText[state.cursor.line]) {
                 state.cursor.line += 1
             }
         }
@@ -163,42 +163,20 @@ updateCursor :: proc(state: ^State) {
 
     wheelMove := rl.GetMouseWheelMove()
     if wheelMove > 0 {
-        if state.cursor.line == state.window.topViewLine + maxViewLines(state.window.height) - 1 && state.window.topViewLine != 0 {
+        if state.cursor.line == state.page.topViewLine + maxViewLines(state.window.height) - 1 && state.page.topViewLine != 0 {
             state.cursor.line -= 1
         }
-        state.window.topViewLine -= 1
+        state.page.topViewLine -= 1
     } else if wheelMove < 0 {
-        if state.cursor.line == state.window.topViewLine + 1 || state.cursor.line == state.window.topViewLine  {
+        if state.cursor.line == state.page.topViewLine + 1 || state.cursor.line == state.page.topViewLine  {
             state.cursor.line += 1
         }
-        state.window.topViewLine += 1
+        state.page.topViewLine += 1
     }
 
-    if state.window.topViewLine < 0 {
-        state.window.topViewLine = 0
+    if state.page.topViewLine < 0 {
+        state.page.topViewLine = 0
     }
 
     capCursor(state)
-}
-
-capCursor :: proc(state: ^State) {
-    if state.cursor.line < 0 {
-        state.cursor.line = 0
-    } else if state.cursor.line >= len(state.page.text) && state.cursor.line > 0 {
-        state.cursor.line = len(state.page.text) - 1
-    }
-
-    if state.cursor.column < 0 {
-        state.cursor.column = 0
-    } else if len(state.page.text) > 0 {
-        if state.cursor.column > strings.builder_len(state.page.text[state.cursor.line]) {
-            state.cursor.column = strings.builder_len(state.page.text[state.cursor.line])
-        }
-    }
-
-    if state.cursor.line > state.window.topViewLine + maxViewLines(state.window.height) - VIEW_LINE_BUFFER {
-        state.window.topViewLine += 1
-    } else if state.cursor.line < state.window.topViewLine + VIEW_LINE_BUFFER && state.window.topViewLine > 0 {
-        state.window.topViewLine -= 1
-    }
 }
