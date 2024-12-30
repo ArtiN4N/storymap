@@ -55,7 +55,7 @@ drawInfo :: proc(state: State) {
     )
 
     totalActiveMinutes := cast(f32) state.page.totalActiveTimeMinutes + state.page.timeActiveSeconds / 60.0
-    wpm := cast(f32) state.page.monotonicWords / totalActiveMinutes
+    wpm := cast(f32) state.page.sessionWords / totalActiveMinutes
     strings.write_string(&sb,
         fmt.aprintf(
             "WPM: %.0f",

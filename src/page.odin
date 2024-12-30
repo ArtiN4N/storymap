@@ -23,7 +23,6 @@ Page :: struct {
     text: [dynamic]strings.Builder,
     textSplits: [dynamic][dynamic]int,
     font: rl.Font,
-    symbolsFont: rl.Font,
     fontSize: f32,
     fontSpacing: f32,
 
@@ -35,7 +34,7 @@ Page :: struct {
     unsaved: bool,
 
     words: int,
-    monotonicWords: int,
+    sessionWords: int,
 
     totalTimeMinutes: i32,
     timeSeconds: f32,
@@ -57,7 +56,6 @@ initialPage :: proc(state: State) -> Page {
         text = make([dynamic]strings.Builder),
         textSplits = make([dynamic][dynamic]int),
         font = rl.LoadFontEx("fonts/Noto_Sans_Mono/NotoSansMono-VariableFont_wdth,wght.ttf", 40, cpoints, 0),
-        symbolsFont = rl.LoadFontEx("fonts/Geist_Mono/GeistMono-VariableFont_wght.ttf", 40, cpoints, 0),
         fontSize = 22,
         fontSpacing = 2,
 
@@ -69,7 +67,7 @@ initialPage :: proc(state: State) -> Page {
         unsaved = false,
 
         words = 0,
-        monotonicWords = 0,
+        sessionWords = 0,
 
         totalTimeMinutes = 0,
         timeSeconds = 0.0,
@@ -92,7 +90,6 @@ destroyPage :: proc(page: ^Page) {
     delete(page.textSplits)
 
     rl.UnloadFont(page.font)
-    rl.UnloadFont(page.symbolsFont)
 }
 
 setPage :: proc(state: ^State) {
@@ -256,7 +253,7 @@ addNewLine :: proc(state: ^State) {
     if len(pre) > 0 && len(post) > 0 {
         if alphanumeric[pre[len(pre)-1]] && alphanumeric[post[len(post)-1]] {
             state.page.words += 1
-            state.page.monotonicWords += 1
+            state.page.sessionWords += 1
         }
     }
 
@@ -319,10 +316,10 @@ writePage :: proc(state: ^State) {
         if alphanumeric[key] {
             if state.cursor.column == 0 {
                 state.page.words += 1
-                state.page.monotonicWords += 1
+                state.page.sessionWords += 1
             } else if !alphanumeric[work[state.cursor.column - 1]] {
                 state.page.words += 1
-                state.page.monotonicWords += 1
+                state.page.sessionWords += 1
             }
         }
 
