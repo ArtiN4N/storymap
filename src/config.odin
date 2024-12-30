@@ -9,12 +9,24 @@ FlagManager :: struct {
     flags: rl.ConfigFlags,
 }
 
-// Procedure that adds a flag to a FlagManager.
-addConfigFlag :: proc(flagManager: ^FlagManager, flag: rl.ConfigFlag) {
-    flagManager.flags += {flag}
+// Procedure that initializes config flags.
+initializeConfigFlags :: proc(flagManager: ^FlagManager) {
+    addConfigFlags(flagManager, .VSYNC_HINT, .WINDOW_RESIZABLE, .MSAA_4X_HINT, .WINDOW_HIGHDPI)
+    rl.SetConfigFlags(flagManager.flags)
+
+    flagManager.fullscreen = false
 }
 
-// Procedure that removes a flag from a FlagManager.
-removeConfigFlag :: proc(flagManager: ^FlagManager, flag: rl.ConfigFlag) {
-    flagManager.flags -= {flag}
+// Procedure that adds a set of flags to a FlagManager.
+addConfigFlags :: proc(flagManager: ^FlagManager, flag: ..rl.ConfigFlag) {
+    for f in flag {
+        flagManager.flags += {f}
+    }
+}
+
+// Procedure that removes a set of flags from a FlagManager.
+removeConfigFlags :: proc(flagManager: ^FlagManager, flag: ..rl.ConfigFlag) {
+    for f in flag {
+        flagManager.flags -= {f}
+    }
 }
