@@ -124,6 +124,9 @@ readFile :: proc(state: ^State, file: cstring) {
 
     alphanumeric := ALPHANUMERIC
 
+    characterWidth := characterWidth(state.page.font, state.page.fontSize, state.page.fontSpacing)
+    maxCharacters := maxCharactersPerLine(characterWidth, state.page.fontSpacing)
+
     append(&state.page.text, strings.builder_make())
     append(&state.page.textSplits, make([dynamic]int))
     indx := 0
@@ -131,8 +134,8 @@ readFile :: proc(state: ^State, file: cstring) {
         byt := data[i]
 
         if byt == '\n' {
-            for j := state.lineCharsMax ; j < cast(i32) len(state.page.text[indx].buf) - 1 ; j += state.lineCharsMax {
-                if state.lineCharsMax < 1 {
+            for j := maxCharacters ; j < len(state.page.text[indx].buf) - 1 ; j += maxCharacters {
+                if maxCharacters < 1 {
                     break
                 }
                 append(&state.page.textSplits[indx], cast(int) j + 1)

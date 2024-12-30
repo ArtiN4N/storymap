@@ -91,5 +91,5 @@ resetState :: proc(state: ^State) {
     resetWindow(&state.window)
 
     destroyPage(&state.page)
-    createPage(state)
+    setPage(state)
 }

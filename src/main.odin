@@ -20,7 +20,7 @@ main :: proc() {
 
     initializeConfigFlags(&state.window.flagManager)
 
-    rl.InitWindow(state.window.width, state.window.height, "storymap")
+    rl.InitWindow(cast(i32) state.window.width, cast(i32) state.window.height, "storymap")
     defer rl.CloseWindow()
 
     setPage(&state)

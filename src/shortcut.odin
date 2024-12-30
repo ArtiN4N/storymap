@@ -35,10 +35,12 @@ setShortcuts :: proc() -> map[rl.KeyboardKey]Shortcut {
     ret[BORDERLESS_KEY] = borderlessShortcut
     ret[QUIT_KEY] = quitShortcut
     ret[SAVE_KEY] = saveShortcut
+
+    return ret
 }
 
 destroyShortcuts :: proc(shortcuts: ^map[rl.KeyboardKey]Shortcut) {
-    delete(shortcuts)
+    delete(shortcuts^)
 }
 
 checkShortCuts :: proc(state: ^State) {

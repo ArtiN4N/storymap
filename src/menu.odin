@@ -5,12 +5,7 @@ import "core:strings"
 
 import rl "vendor:raylib"
 
-MENU_WIDTH :: 130
-MENU_HEIGHT :: INFO_HEIGHT + len(MENU_OPTS) * LINE_HEIGHT + INFO_HEIGHT
-
-MENU_COLOR : rl.Color : {0x10, 0x10, 0x20, 0xff}
-
-MENUOPTS :: [?]cstring{
+MENU_OPTS :: [?]cstring{
     "new",
     "open",
     "save",
@@ -18,6 +13,11 @@ MENUOPTS :: [?]cstring{
     "rename",
     "quit"
 }
+
+MENU_WIDTH :: 130
+MENU_HEIGHT :: INFO_HEIGHT + len(MENU_OPTS) * LINE_HEIGHT + INFO_HEIGHT
+
+MENU_COLOR : rl.Color : {0x10, 0x10, 0x20, 0xff}
 
 drawMenu :: proc(state: State) {
     mBoxStartX := state.window.width - MENU_WIDTH
