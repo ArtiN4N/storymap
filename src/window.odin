@@ -29,7 +29,7 @@ WindowObject :: struct {
     topViewLine: int,
 }
 
-// Procedure that returns an initialized WindowObject.
+// A procedure that returns an initialized WindowObject.
 initialWindow :: proc() -> WindowObject {
     return {
         width = INITIAL_WINDOW_WIDTH,
@@ -37,11 +37,13 @@ initialWindow :: proc() -> WindowObject {
 
         flagManager = initialFlagManager(),
 
-        characterWidth = 0,
-        lineCharactersMax = 0,
-
         topViewLine = 0
     }
+}
+
+// A procedure that resets a WindowObject for a new file.
+resetWindow :: proc(window: ^WindowObject) {
+    window.topViewLine = 0
 }
 
 // A procedure that returns the maximum number of editor lines that can be displayed for the current window.
@@ -62,14 +64,14 @@ maxCharactersPerLine :: proc(characterWidth: i32, fontSpacing: f32) -> i32 {
     return TOTAL_TEXT_WIDTH / characterWidth - fontSpacing
 }
 
-// Procedure that changes the window size, and updates necessary information about editor view.
+// A procedure that changes a WindowObjects' size, and updates necessary information about editor view.
 changeWindowSize :: proc(window: ^WindowObject, width, height: i32) {
     window.width = width
     window.height = height
     //logicalHeight = window.height * 3
 }
 
-// Procedure that toggles fullscreen, and changes window size if necessary.
+// A procedure that toggles fullscreen on a WindowObject, and changes its size if necessary.
 toggleFullscreen :: proc(window: ^WindowObject) {
     window.flagManager.fullscreen = !window.flagManager.fullscreen
 
@@ -86,7 +88,7 @@ toggleFullscreen :: proc(window: ^WindowObject) {
     rl.ToggleFullscreen()
 }
 
-// Procedure that updates window data to new screen size.
+// A procedure that updates a WindowObjects' data to the new screen size.
 updateWindowSize :: proc(window: ^WindowObject) {
     if window.fullscreen {
         return
