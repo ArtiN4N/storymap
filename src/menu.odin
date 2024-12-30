@@ -5,10 +5,10 @@ import "core:strings"
 
 import rl "vendor:raylib"
 
-MENUWIDTH :: 130
-MENUHEIGHT :: INFOHEIGHT + len(MENUOPTS) * LINEHEIGHT + INFOHEIGHT
+MENU_WIDTH :: 130
+MENU_HEIGHT :: INFO_HEIGHT + len(MENU_OPTS) * LINE_HEIGHT + INFO_HEIGHT
 
-MENUCOLOR : rl.Color : {0x10, 0x10, 0x20, 0xff}
+MENU_COLOR : rl.Color : {0x10, 0x10, 0x20, 0xff}
 
 MENUOPTS :: [?]cstring{
     "new",
@@ -20,29 +20,29 @@ MENUOPTS :: [?]cstring{
 }
 
 drawMenu :: proc(state: State) {
-    mBoxStartX := state.screenWidth - MENUWIDTH
+    mBoxStartX := state.window.width - MENU_WIDTH
 
-    radius : i32 = 5
-    menuBox : rl.Rectangle = { cast(f32) mBoxStartX - 1, 1, MENUWIDTH, MENUHEIGHT }
+    radius : int = 5
+    menuBox : rl.Rectangle = { cast(f32) mBoxStartX - 1, 1, MENU_WIDTH, MENU_HEIGHT }
 
     if state.menuActive {
         tempBox := menuBox
-        tempBox = { cast(f32) mBoxStartX - 2, 0, MENUWIDTH + 2, MENUHEIGHT + 2 }
+        tempBox = { cast(f32) mBoxStartX - 2, 0, MENU_WIDTH + 2, MENU_HEIGHT + 2 }
         rl.DrawRectangleRec(tempBox, rl.WHITE)
 
-        rl.DrawRectangleRec(menuBox, MENUCOLOR)
+        rl.DrawRectangleRec(menuBox, MENU_COLOR)
 
-        selColor := TEXTCOLOR
+        selColor := TEXT_COLOR
         selColor.a = 50
         rl.DrawCircle(
-            state.screenWidth - radius - 10, INFOHEIGHT / 2,
+            cast(i32) (state.window.width - radius - 10), INFO_HEIGHT / 2,
             cast(f32) radius + 5, selColor
         )
     }
 
     rl.DrawCircle(
-        state.screenWidth - radius - 10, INFOHEIGHT / 2,
-        cast(f32) radius, TEXTCOLOR
+        cast(i32) (state.window.width - radius - 10), INFO_HEIGHT / 2,
+        cast(f32) radius, TEXT_COLOR
     )
 
     if !state.menuActive {
@@ -51,36 +51,36 @@ drawMenu :: proc(state: State) {
 
     mousePos := rl.GetMousePosition()
     if rl.CheckCollisionPointRec(mousePos, menuBox) && !state.fBox.active {
-        hoverPos := (mousePos.y - INFOHEIGHT) / LINEHEIGHT
+        hoverPos := (mousePos.y - INFO_HEIGHT) / LINE_HEIGHT
         if hoverPos < 0 {
             hoverPos = -1
         }
 
         hoverOpt := cast(int) hoverPos
 
-        if hoverOpt >= 0 && hoverOpt < len(MENUOPTS) {
+        if hoverOpt >= 0 && hoverOpt < len(MENU_OPTS) {
             hoverRec : rl.Rectangle = {
-                cast(f32) mBoxStartX - 1, INFOHEIGHT + cast(f32) hoverOpt * LINEHEIGHT,
-                MENUWIDTH, LINEHEIGHT
+                cast(f32) mBoxStartX - 1, INFO_HEIGHT + cast(f32) hoverOpt * LINE_HEIGHT,
+                MENU_WIDTH, LINE_HEIGHT
             }
-            rl.DrawRectangleRec(hoverRec, CURSORLINECOLOR)
+            rl.DrawRectangleRec(hoverRec, CURSOR_LINE_COLOR)
         } 
     }
 
-    pos : rl.Vector2 = { cast(f32) mBoxStartX + TEXTMARGIN, INFOHEIGHT }
-    for str in MENUOPTS {
+    pos : rl.Vector2 = { cast(f32) mBoxStartX + TEXT_MARGIN, INFO_HEIGHT }
+    for str in MENU_OPTS {
         rl.DrawTextEx(
             state.page.font, str,
-            pos, state.page.fontSize, state.page.fontSpacing, TEXTCOLOR
+            pos, state.page.fontSize, state.page.fontSpacing, TEXT_COLOR
         )
-        pos.y += LINEHEIGHT
+        pos.y += LINE_HEIGHT
     }
 }
 
 updateMenu :: proc(state: ^State) {
     radius : f32 = 5
-    x : f32 = cast(f32) state.screenWidth - radius - 10
-    y : f32 = INFOHEIGHT / 2
+    x : f32 = cast(f32) state.window.width - radius - 10
+    y : f32 = INFO_HEIGHT / 2
 
     mousePos := rl.GetMousePosition()
     leftClick := rl.IsMouseButtonPressed(rl.MouseButton.LEFT)
@@ -92,11 +92,11 @@ updateMenu :: proc(state: ^State) {
         return
     }
 
-    mBoxStartX := state.screenWidth - MENUWIDTH
-    menuBox : rl.Rectangle = { cast(f32) mBoxStartX - 1, 1, MENUWIDTH, MENUHEIGHT }
+    mBoxStartX := state.window.width - MENU_WIDTH
+    menuBox : rl.Rectangle = { cast(f32) mBoxStartX - 1, 1, MENU_WIDTH, MENU_HEIGHT }
 
     if rl.CheckCollisionPointRec(mousePos, menuBox) && leftClick {
-        hoverPos := (mousePos.y - INFOHEIGHT) / LINEHEIGHT
+        hoverPos := (mousePos.y - INFO_HEIGHT) / LINE_HEIGHT
         if hoverPos < 0 {
             hoverPos = -1
         }
