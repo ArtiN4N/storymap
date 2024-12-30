@@ -1,21 +1,18 @@
 package main
 
 import rl "vendor:raylib"
+import "core:fmt"
 
+// Struct that holds all information relevant to the program.
+// Used by passing it to a procedure as a reference, which can then edit the state of the program.
 State :: struct {
+    // A boolean that, when set to true, exits program on next frame.
     close: bool,
 
-    screenWidth: i32,
-    screenHeight: i32,
+    // A struct that contains all data for interfacing with the window on screen.
+    window: WindowObject,
 
-    editWidth: i32,
-
-    logicalHeight: i32,
-    topViewLine: int,
-    maxViewLines: int,
-
-    fullscreen: bool,
-    flags: rl.ConfigFlags,
+    // A map that binds specific keys to shortcut procedures, which then interface the state.
     shortcuts: map[rl.KeyboardKey]Shortcut,
 
     line: int,
@@ -29,58 +26,25 @@ State :: struct {
     heldKey: rl.KeyboardKey,
 
     page: Page,
+
+    menuActive: bool,
+
+    fBox: FileBox,
+
+    loadDir: cstring,
 }
 
-Shortcut :: proc(state: ^State)
-
-fullscreenShortcut :: proc(state: ^State) {
-    state.fullscreen = !state.fullscreen
-
-    // Fullscreen does not update screen size to monitor size.
-    // What this means is, if the screen was 800x800px before fullscreen,
-    // after fullscreen, raylib thinks the screen width and height is still 800x800,
-    // instead of the monitor size. Thus, if the screen is fullscreen, we change
-    // the screen size to the monitor size before the toggle function is called.
-    if state.fullscreen {
-        mon := rl.GetCurrentMonitor()
-        state.screenWidth = rl.GetMonitorWidth(mon)
-        state.screenHeight = rl.GetMonitorHeight(mon)
-        state.logicalHeight = state.screenHeight * 3
-        state.maxViewLines = cast(int) (state.screenHeight - TEXTMARGIN * 2) / LINEHEIGHT
-    }
-
-    rl.ToggleFullscreen()
-}
-
-borderlessShortcut :: proc(state: ^State) {
-    rl.ToggleBorderlessWindowed()
-}
-
-quitShortcut :: proc(state: ^State) {
-    state.close = true
-}
-
+// Procuedure that returns an initialized State.
 initialState :: proc() -> State {
-    scuts := make(map[rl.KeyboardKey]Shortcut)
+    shortcuts := setShortcuts()
 
-    scuts[rl.KeyboardKey.F] = fullscreenShortcut
-    scuts[rl.KeyboardKey.B] = borderlessShortcut
-    scuts[rl.KeyboardKey.Q] = quitShortcut
+    dir := rl.GetWorkingDirectory()
 
     return {
         close = false,
 
-        screenWidth = 800,
-        screenHeight = 800,
+        window = initialWindow(),
 
-        editWidth = 800 - SPINEWIDTH - TEXTMARGIN * 2,
-
-        logicalHeight = 800,
-        topViewLine = 0,
-        maxViewLines = (800 - TEXTMARGIN * 2 - INFOHEIGHT) / LINEHEIGHT - 1,
-
-        fullscreen = false,
-        flags = {},
         shortcuts = scuts,
 
         line = 0,
@@ -94,45 +58,42 @@ initialState :: proc() -> State {
         heldKey = rl.KeyboardKey.KEY_NULL,
 
         page = {},
+
+        menuActive = false,
+
+        fBox = initialFileBox(),
+
+        loadDir = dir,
     }
 }
 
 destroyState :: proc(state: ^State) {
-    delete(state.shortcuts)
+    
 }
 
-addConfigFlag :: proc(state: ^State, flag: rl.ConfigFlag) {
-    state.flags += {flag}
-}
-removeConfigFlag :: proc(state: ^State, flag: rl.ConfigFlag) {
-    state.flags -= {flag}
-}
-
-checkShortCuts :: proc(state: ^State) {
-    if !rl.IsKeyDown(rl.KeyboardKey.LEFT_CONTROL) {
-        return
-    }
-
-    for key, value in state.shortcuts {
-        if rl.IsKeyPressed(key) {
-            value(state)
-        }
-    }
+setCharWidth :: proc(state: ^State) {
+    charSize := rl.MeasureTextEx(state.page.font, "a", state.page.fontSize, state.page.fontSpacing)
+    state.charWidth = cast(i32) charSize.x + 2
+    state.lineCharsMax = state.editWidth / state.charWidth - 2
 }
 
-updateScreenSize :: proc(state: ^State) {
-    // Fullscreen does not update screen size to monitor size.
-    // What this means is, if the screen was 800x800px before fullscreen,
-    // after fullscreen, raylib thinks the screen width and height is still 800x800,
-    // instead of the monitor size. Thus, if the screen is fullscreen, we ignore the
-    // change in screen size, and instead directly update it when the toggle function
-    // is called.
-    if state.fullscreen {
-        return
-    }
 
-    state.screenWidth = rl.GetScreenWidth()
-    state.screenHeight = rl.GetScreenHeight()
-    state.logicalHeight = state.screenHeight * 3
-    state.maxViewLines = cast(int) (state.screenHeight - TEXTMARGIN * 2) / LINEHEIGHT
+
+resetState :: proc(state: ^State) {
+    state.topViewLine = 0
+
+    state.line = 0
+    state.column = 0
+    state.cursorFrame = 0.0
+    state.cursorCooldown = 0.0
+
+    state.backspaceCooldown = 0.0
+    state.enterCooldown = 0.0
+
+    state.heldKey = rl.KeyboardKey.KEY_NULL
+
+    state.menuActive = false
+
+    destroyPage(&state.page)
+    createPage(state)
 }
