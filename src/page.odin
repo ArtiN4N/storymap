@@ -21,7 +21,9 @@ ALPHANUMERIC :: [?]bool{
 
 Page :: struct {
     text: [dynamic]strings.Builder,
+    textSplits: [dynamic][dynamic]int,
     font: rl.Font,
+    symbolsFont: rl.Font,
     fontSize: f32,
     fontSpacing: f32,
 
@@ -29,6 +31,7 @@ Page :: struct {
 
     name: string,
     extension: string,
+    path: cstring,
     unsaved: bool,
 
     words: int,
@@ -45,11 +48,16 @@ Page :: struct {
     activeRatio: f32,
 }
 
-initialPage :: proc() -> Page {
+initialPage :: proc(state: State) -> Page {
     cpoints : [^]rune
+
+    rl.ChangeDirectory(rl.GetApplicationDirectory())
+
     return {
         text = make([dynamic]strings.Builder),
+        textSplits = make([dynamic][dynamic]int),
         font = rl.LoadFontEx("fonts/Noto_Sans_Mono/NotoSansMono-VariableFont_wdth,wght.ttf", 40, cpoints, 0),
+        symbolsFont = rl.LoadFontEx("fonts/Geist_Mono/GeistMono-VariableFont_wght.ttf", 40, cpoints, 0),
         fontSize = 22,
         fontSpacing = 2,
 
@@ -57,6 +65,7 @@ initialPage :: proc() -> Page {
 
         name = "untitled",
         extension = ".txt",
+        path = "",
         unsaved = false,
 
         words = 0,
@@ -71,14 +80,85 @@ initialPage :: proc() -> Page {
 }
 
 destroyPage :: proc(page: ^Page) {
+    // unload builders in text
+    for i in 0..<len(page.text) {
+        strings.builder_destroy(&page.text[i])
+    }
     delete(page.text)
+
+    for i in 0..<len(page.textSplits) {
+        delete(page.textSplits[i])
+    }
+    delete(page.textSplits)
+
     rl.UnloadFont(page.font)
+    rl.UnloadFont(page.symbolsFont)
 }
 
 createPage :: proc(state: ^State) {
-    state.page = initialPage()
+    state.page = initialPage(state^)
     rl.SetTextureFilter(state.page.font.texture, rl.TextureFilter.TRILINEAR);
     append(&state.page.text, strings.builder_make())
+    append(&state.page.textSplits, make([dynamic]int))
+}
+
+loadPageFromFile :: proc(state: ^State, path: cstring, file: cstring) {
+    state.page = initialPage(state^)
+    rl.SetTextureFilter(state.page.font.texture, rl.TextureFilter.TRILINEAR);
+
+    state.page.name = string(rl.GetFileNameWithoutExt(file))
+    state.page.extension = string(rl.GetFileExtension(file))
+
+    state.page.path = path
+    rl.ChangeDirectory(path)
+
+    readFile(state, file)
+}
+
+readFile :: proc(state: ^State, file: cstring) {
+
+    data := rl.LoadFileText(file)
+    datalen := len(cstring(data))
+
+    words := 0
+
+    alphanumeric := ALPHANUMERIC
+
+    append(&state.page.text, strings.builder_make())
+    append(&state.page.textSplits, make([dynamic]int))
+    indx := 0
+    for i in 0..<datalen {
+        byt := data[i]
+
+        if byt == '\n' {
+            for j := state.lineCharsMax ; j < cast(i32) len(state.page.text[indx].buf) - 1 ; j += state.lineCharsMax {
+                if state.lineCharsMax < 1 {
+                    break
+                }
+                append(&state.page.textSplits[indx], cast(int) j + 1)
+            }
+
+            append(&state.page.text, strings.builder_make())
+            append(&state.page.textSplits, make([dynamic]int))
+            indx += 1
+            continue
+        }
+
+        strings.write_byte(&state.page.text[indx], byt)
+        len := strings.builder_len(state.page.text[indx])
+        if len == 1 && alphanumeric[byt] {
+            words += 1
+        } else if alphanumeric[byt] && !alphanumeric[state.page.text[indx].buf[len - 2]] {
+            words += 1
+        }
+    }
+
+    state.page.words = words
+    rl.UnloadFileText(data)
+}
+
+countPageWords :: proc(state: ^State) -> int {
+    return 0
 }
 
 deleteCharacter :: proc(state: ^State) {
@@ -99,11 +179,11 @@ deleteCharacter :: proc(state: ^State) {
             }
         }
     } else if state.line > 0 {
-        line := state.page.text[state.line]
+        line := &state.page.text[state.line]
         ordered_remove(&state.page.text, state.line)
 
         old_len := strings.builder_len(state.page.text[state.line - 1])
-        strings.write_string(&state.page.text[state.line - 1], strings.to_string(line))
+        strings.write_string(&state.page.text[state.line - 1], strings.to_string(line^))
         state.line -= 1
         state.column = old_len
 
@@ -118,6 +198,8 @@ deleteCharacter :: proc(state: ^State) {
                 }
             }
         }
+
+        strings.builder_destroy(line)
     }
 
     flagActivePage(state)
@@ -214,22 +296,21 @@ writePage :: proc(state: ^State) {
             continue
         }
 
-        sb := strings.builder_make()
+        /*sb := strings.builder_make()
         strings.write_string(&sb, strings.to_string(state.page.text[state.line]))
         strings.write_byte(&sb, 'a')
         textpos := rl.MeasureTextEx(
             state.page.font, strings.to_cstring(&sb), state.page.fontSize, state.page.fontSpacing
         )
+
+        strings.builder_destroy(&sb)
+
         if textpos.x > cast(f32) state.editWidth {
             if key != ' ' {
                 addNewLine(state)
-                //prevwork := &state.page.text[state.line - 1].buf
-                //if alphanumeric[key] && alphanumeric[prevwork[len(prevwork) - 1]] {
-                    //strings.write_string(&state.page.text[state.line - 1], "-")
-                //}
                 work = &state.page.text[state.line].buf
             }
-        }
+        }*/
 
         inject_at(work, state.column, cast(u8) key)
         if alphanumeric[key] {
@@ -282,4 +363,36 @@ updatePage :: proc(state: ^State) {
 
     updateCursor(state)
     writePage(state)
+}
+
+savePage :: proc(state: ^State) {
+    master := strings.builder_make()
+    for i in 0..<len(state.page.text) {
+        write := strings.to_string(state.page.text[i])
+        strings.write_string(&master, write)
+        if write == "" && len(state.page.text) > 1 {
+            strings.write_byte(&master, '\n')
+        }
+    }
+
+    strings.write_byte(&master, 0x00)
+
+    fname := strings.builder_make()
+    //strings.write_string(&fname, state.page.path)
+    strings.write_string(&fname, state.page.name)
+    strings.write_string(&fname, state.page.extension)
+
+    rl.ChangeDirectory(state.page.path)
+    success := rl.SaveFileText(strings.to_cstring(&fname), transmute([^]u8) strings.to_cstring(&master))
+
+    strings.builder_destroy(&master)
+    strings.builder_destroy(&fname)
+
+    if success {
+        state.page.unsaved = false
+    }
+}
+
+resetPage :: proc(state: ^State) {
+    state^ = initialState()
 }
