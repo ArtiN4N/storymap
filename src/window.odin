@@ -25,16 +25,8 @@ WindowObject :: struct {
     // Struct that handles window flags, i.e. fullscreen, resizeable, etc.
     flagManager: FlagManager,
 
-    // Size of a single char (in px) of the text in the opened file.
-    characterWidth: i32,
-    // The maximum number of characters that can fit in a line of the editor.
-    // This is used to ensure that all writing is visually contained in TOTAL_TEXT_WIDTH.
-    lineCharactersMax: i32,
-
     // The first line number to be displayed in the editor.
     topViewLine: int,
-    // The maximum number of lines that can be displayed in the editor.
-    maxViewLines: i32,
 }
 
 // Procedure that returns an initialized WindowObject.
@@ -48,8 +40,7 @@ initialWindow :: proc() -> WindowObject {
         characterWidth = 0,
         lineCharactersMax = 0,
 
-        topViewLine = 0,
-        maxViewLines = maxViewLines(INITIAL_WINDOW_HEIGHT),
+        topViewLine = 0
     }
 }
 
@@ -58,11 +49,23 @@ maxViewLines :: proc(height: i32) {
     return (height - TEXT_MARGIN * 2 - INFO_HEIGHT) / LINE_HEIGHT - 1
 }
 
+// A procedure that returns the size of a single char (in px) of the text in the opened file.
+// This assumes a mono font, where all characters have equal sizings
+characterWidth :: proc(font: rl.Font, fontSize, fontSpacing: f32) -> i32 {
+    charSize := rl.MeasureTextEx(font, "a", fontSize, fontSpacing)
+    return charSize.x + fontSpacing
+}
+
+// A procedure that returns the maximum number of characters that can fit in a line of the editor.
+// This is used to ensure that all writing is visually contained in TOTAL_TEXT_WIDTH.
+maxCharactersPerLine :: proc(characterWidth: i32, fontSpacing: f32) -> i32 {
+    return TOTAL_TEXT_WIDTH / characterWidth - fontSpacing
+}
+
 // Procedure that changes the window size, and updates necessary information about editor view.
 changeWindowSize :: proc(window: ^WindowObject, width, height: i32) {
     window.width = width
     window.height = height
-    window.maxViewLines = maxViewLines(height)
     //logicalHeight = window.height * 3
 }
 
