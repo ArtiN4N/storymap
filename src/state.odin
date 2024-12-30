@@ -55,7 +55,7 @@ initialState :: proc() -> State {
         backspaceCooldown = 0.0,
         enterCooldown = 0.0,
 
-        heldKey = rl.KeyboardKey.KEY_NULL,
+        heldKey = .KEY_NULL,
 
         page = {},
 
@@ -67,13 +67,15 @@ initialState :: proc() -> State {
     }
 }
 
+
+
 destroyState :: proc(state: ^State) {
-    
+    destroyShortcuts(&state.shortcuts)
+
+    destroyPage(&state.page)
 }
 
 resetState :: proc(state: ^State) {
-    state.topViewLine = 0
-
     state.line = 0
     state.column = 0
     state.cursorFrame = 0.0
@@ -82,7 +84,7 @@ resetState :: proc(state: ^State) {
     state.backspaceCooldown = 0.0
     state.enterCooldown = 0.0
 
-    state.heldKey = rl.KeyboardKey.KEY_NULL
+    state.heldKey = .KEY_NULL
 
     state.menuActive = false
 
