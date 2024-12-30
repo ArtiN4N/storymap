@@ -19,7 +19,18 @@ ALPHANUMERIC :: [?]bool{
     0x61..=0x7a = true,
 }
 
+// ACTIONS:
+// move cursor up || move cursor down || move cursor left || move cursor right
+// move cursor to the beginning of the line || move cursor to the end of the line
+// move cursor to the top view line || move cursor to the bottom view line
+// move page view down one || move page view up one || move page view to specific range
+
+
+
+
 Page :: struct {
+    editText: [dynamic]strings.Builder,
+
     text: [dynamic]strings.Builder,
     textSplits: [dynamic][dynamic]int,
     font: rl.Font,
