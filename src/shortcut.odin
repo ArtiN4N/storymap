@@ -42,7 +42,7 @@ destroyShortcuts :: proc(shortcuts: ^map[rl.KeyboardKey]Shortcut) {
 }
 
 checkShortCuts :: proc(state: ^State) {
-    if !rl.IsKeyDown(rl.KeyboardKey.LEFT_CONTROL) {
+    if !rl.IsKeyDown(.LEFT_CONTROL) {
         return
     }
 

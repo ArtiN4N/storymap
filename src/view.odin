@@ -5,28 +5,28 @@ import "core:strings"
 
 import rl "vendor:raylib"
 
-SPINECOLOR  : rl.Color : {0x18, 0x18, 0x28, 0xff}
-TEXTCOLOR : rl.Color : {0xdd, 0xdd, 0xdd, 0xff}
+SPINE_COLOR  : rl.Color : {0x18, 0x18, 0x28, 0xff}
+TEXT_COLOR : rl.Color : {0xdd, 0xdd, 0xdd, 0xff}
 
-SPINEWIDTH :: 40
-LINEHEIGHT :: 22
+SPINE_WIDTH :: 40
+LINE_HEIGHT :: 22
 
-TEXTMARGIN :: 15
+TEXT_MARGIN :: 15
 
 drawPageText :: proc(state: State) {
-    pos : rl.Vector2 = { TEXTMARGIN + SPINEWIDTH, TEXTMARGIN + INFOHEIGHT }
+    pos : rl.Vector2 = { TEXT_MARGIN + SPINE_WIDTH, TEXT_MARGIN + INFO_HEIGHT }
 
-    lines := state.topViewLine + state.maxViewLines + 1
+    lines := state.window.topViewLine + maxViewLines(state.window.height) + 1
     if lines > len(state.page.text) {
         lines = len(state.page.text)
     }
 
     sb := strings.builder_make()
 
-    for i in state.topViewLine..<lines {
-        splits := state.page.textSplits[state.topViewLine + i]
+    for i in state.window.topViewLine..<lines {
+        splits := state.page.textSplits[state.window.topViewLine + i]
 
-        strings.write_string(&sb, strings.to_string(state.page.text[state.topViewLine + i]))
+        strings.write_string(&sb, strings.to_string(state.page.text[state.window.topViewLine + i]))
 
         j := 0
         splitCount := len(splits)
@@ -37,9 +37,9 @@ drawPageText :: proc(state: State) {
 
         rl.DrawTextEx(
             state.page.font, strings.to_cstring(&sb),
-            pos, state.page.fontSize, state.page.fontSpacing, TEXTCOLOR
+            pos, state.page.fontSize, state.page.fontSpacing, TEXT_COLOR
         )
-        pos.y += LINEHEIGHT * cast(f32) (splitCount + 1)
+        pos.y += LINE_HEIGHT * cast(f32) (splitCount + 1)
 
         strings.builder_reset(&sb)
     }
@@ -48,26 +48,26 @@ drawPageText :: proc(state: State) {
 }
 
 drawLineNumbers :: proc(state: State) {
-    visualLine := state.line - state.topViewLine
+    visualLine := state.line - state.window.topViewLine
 
-    spine : rl.Rectangle = { 0, 0, SPINEWIDTH, cast(f32) state.screenHeight }
-    rl.DrawRectangleRec(spine, SPINECOLOR)
+    spine : rl.Rectangle = { 0, 0, SPINE_WIDTH, cast(f32) state.window.height }
+    rl.DrawRectangleRec(spine, SPINE_COLOR)
 
     cursorline : rl.Rectangle = {
-        0, cast(f32) (TEXTMARGIN + visualLine * LINEHEIGHT + INFOHEIGHT),
-        cast(f32) state.screenWidth, LINEHEIGHT
+        0, cast(f32) (TEXT_MARGIN + visualLine * LINE_HEIGHT + INFO_HEIGHT),
+        cast(f32) state.window.width, LINE_HEIGHT
     }
-    rl.DrawRectangleRec(cursorline, CURSORLINECOLOR)
+    rl.DrawRectangleRec(cursorline, CURSOR_LINE_COLOR)
 
-    pos : rl.Vector2 = { 0, TEXTMARGIN + INFOHEIGHT }
-    lines := state.topViewLine + state.maxViewLines + 1
+    pos : rl.Vector2 = { 0, TEXT_MARGIN + INFO_HEIGHT }
+    lines := state.window.topViewLine + maxViewLines(state.window.height) + 1
     if lines > len(state.page.text) {
         lines = len(state.page.text)
     }
 
     fmt.println(lines)
     fmt.println(len(state.page.textSplits))
-    for i in state.topViewLine..<lines {
+    for i in state.window.topViewLine..<lines {
         splits := state.page.textSplits[i]
 
         splitCount := len(splits)
@@ -75,11 +75,11 @@ drawLineNumbers :: proc(state: State) {
         text := rl.TextFormat("%d", i)
         characterSize := rl.MeasureTextEx(state.page.font, text, state.page.fontSize, state.page.fontSpacing)
         drawpos := pos
-        drawpos.x += (SPINEWIDTH - characterSize.x) / 2.0
+        drawpos.x += (SPINE_WIDTH - characterSize.x) / 2.0
         rl.DrawTextEx(
             state.page.font, text,
-            drawpos, state.page.fontSize, state.page.fontSpacing, TEXTCOLOR
+            drawpos, state.page.fontSize, state.page.fontSpacing, TEXT_COLOR
         )
-        pos.y += LINEHEIGHT * cast(f32) (splitCount + 1)
+        pos.y += LINE_HEIGHT * cast(f32) (splitCount + 1)
     }
 }
