@@ -5,34 +5,34 @@ import "core:fmt"
 
 import rl "vendor:raylib"
 
-CURSORCOLOR : rl.Color : {0x10, 0x7a, 0xb0, 0xff}
-CURSORLINECOLOR : rl.Color : {0x2e, 0x2e, 0x3e, 0xff}
+CURSOR_COLOR : rl.Color : {0x10, 0x7a, 0xb0, 0xff}
+CURSOR_LINE_COLOR : rl.Color : {0x2e, 0x2e, 0x3e, 0xff}
 
-CURSORWIDTH :: 2
-CURSORWAIT :: 0.3
-CURSORCYCLE :: CURSORWAIT + 0.025
+CURSOR_WIDTH :: 2
+CURSOR_WAIT :: 0.3
+CURSOR_CYCLE :: CURSOR_WAIT + 0.025
 
-VIEWLINEBUFFER :: 1
+VIEW_LINE_BUFFER :: 1
 
 drawCursor :: proc(state: State) {
     if state.cursorFrame > 0.5 {
         return
     }
 
-    visualLine := state.line - state.topViewLine
+    visualLine := state.line - state.window.topViewLine
 
     characterSize := rl.MeasureTextEx(state.page.font, "a", state.page.fontSize, state.page.fontSpacing)
     cursor : rl.Rectangle = {
-        x = TEXTMARGIN + SPINEWIDTH + (characterSize.x + state.page.fontSpacing) * cast(f32) state.column,
-        y = TEXTMARGIN + characterSize.y * cast(f32) visualLine + INFOHEIGHT,
-        width = CURSORWIDTH,
-        height = LINEHEIGHT
+        x = TEXT_MARGIN + SPINE_WIDTH + (characterSize.x + state.page.fontSpacing) * cast(f32) state.column,
+        y = TEXT_MARGIN + characterSize.y * cast(f32) visualLine + INFO_HEIGHT,
+        width = CURSOR_WIDTH,
+        height = LINE_HEIGHT
     }
-    rl.DrawRectangleRec(cursor, CURSORCOLOR)
+    rl.DrawRectangleRec(cursor, CURSOR_COLOR)
 }
 
 moveCursor :: proc(state: ^State) {
-    if state.heldKey == rl.KeyboardKey.KEY_NULL {
+    if state.heldKey == .KEY_NULL {
         return
     }
 
@@ -41,39 +41,39 @@ moveCursor :: proc(state: ^State) {
     axis: ^int
     direction: int
 
-    if state.heldKey == rl.KeyboardKey.LEFT {
+    if state.heldKey == .LEFT {
         direction = -1
         axis = &state.column
 
-        if rl.IsKeyDown(rl.KeyboardKey.LEFT_CONTROL) {
+        if rl.IsKeyDown(.LEFT_CONTROL) {
             direction = -1 * state.column
             if direction > -1 {
                 direction = -1
             }
         }
-    } else if state.heldKey == rl.KeyboardKey.RIGHT {
+    } else if state.heldKey == .RIGHT {
         direction = 1
         axis = &state.column
 
-        if rl.IsKeyDown(rl.KeyboardKey.LEFT_CONTROL) {
+        if rl.IsKeyDown(.LEFT_CONTROL) {
             direction = strings.builder_len(state.page.text[state.line]) - state.column
             if direction < 1 {
                 direction = 1
             }
         }
-    } else if state.heldKey == rl.KeyboardKey.UP {
+    } else if state.heldKey == .UP {
         direction = -1
         axis = &state.line
 
-        if rl.IsKeyDown(rl.KeyboardKey.LEFT_CONTROL) {
-            direction = -1 * (state.line - state.topViewLine)
+        if rl.IsKeyDown(.LEFT_CONTROL) {
+            direction = -1 * (state.line - state.window.topViewLine)
         }
-    } else if state.heldKey == rl.KeyboardKey.DOWN {
+    } else if state.heldKey == .DOWN {
         direction = 1
         axis = &state.line
 
-        if rl.IsKeyDown(rl.KeyboardKey.LEFT_CONTROL) {
-            direction = state.maxViewLines + state.topViewLine - state.line
+        if rl.IsKeyDown(.LEFT_CONTROL) {
+            direction = maxViewLines(state.window.height) + state.window.topViewLine - state.line
         }
     } else {
         return
@@ -93,10 +93,10 @@ moveCursor :: proc(state: ^State) {
 
     state.cursorCooldown += rl.GetFrameTime()
 
-    if state.cursorCooldown >= CURSORWAIT {
-        if state.cursorCooldown >= CURSORCYCLE {
+    if state.cursorCooldown >= CURSOR_WAIT {
+        if state.cursorCooldown >= CURSOR_CYCLE {
             axis^ += direction
-            state.cursorCooldown = CURSORWAIT
+            state.cursorCooldown = CURSOR_WAIT
         }
     }
 
@@ -110,23 +110,23 @@ updateCursor :: proc(state: ^State) {
     }
 
     if !rl.IsKeyDown(state.heldKey) {
-        state.heldKey = rl.KeyboardKey.KEY_NULL
+        state.heldKey = .KEY_NULL
     }
 
-    if rl.IsKeyPressed(rl.KeyboardKey.UP) {
-        state.heldKey = rl.KeyboardKey.UP
+    if rl.IsKeyPressed(.UP) {
+        state.heldKey = .UP
         state.cursorCooldown = 0.0
     }
-    if rl.IsKeyPressed(rl.KeyboardKey.DOWN) {
-        state.heldKey = rl.KeyboardKey.DOWN
+    if rl.IsKeyPressed(.DOWN) {
+        state.heldKey = .DOWN
         state.cursorCooldown = 0.0
     }
-    if rl.IsKeyPressed(rl.KeyboardKey.LEFT) {
-        state.heldKey = rl.KeyboardKey.LEFT
+    if rl.IsKeyPressed(.LEFT) {
+        state.heldKey = .LEFT
         state.cursorCooldown = 0.0
     }
-    if rl.IsKeyPressed(rl.KeyboardKey.RIGHT) {
-        state.heldKey = rl.KeyboardKey.RIGHT
+    if rl.IsKeyPressed(.RIGHT) {
+        state.heldKey = .RIGHT
         state.cursorCooldown = 0.0
     }
 
@@ -134,19 +134,19 @@ updateCursor :: proc(state: ^State) {
 
     wheelMove := rl.GetMouseWheelMove()
     if wheelMove > 0 {
-        if state.line == state.topViewLine + state.maxViewLines - 1 && state.topViewLine != 0 {
+        if state.line == state.window.topViewLine + maxViewLines(state.window.height) - 1 && state.window.topViewLine != 0 {
             state.line -= 1
         }
-        state.topViewLine -= 1
+        state.window.topViewLine -= 1
     } else if wheelMove < 0 {
-        if state.line == state.topViewLine + 1 || state.line == state.topViewLine  {
+        if state.line == state.window.topViewLine + 1 || state.line == state.window.topViewLine  {
             state.line += 1
         }
-        state.topViewLine += 1
+        state.window.topViewLine += 1
     }
 
-    if state.topViewLine < 0 {
-        state.topViewLine = 0
+    if state.window.topViewLine < 0 {
+        state.window.topViewLine = 0
     }
 
     capCursor(state)
@@ -167,9 +167,9 @@ capCursor :: proc(state: ^State) {
         }
     }
 
-    if state.line > state.topViewLine + state.maxViewLines - VIEWLINEBUFFER {
-        state.topViewLine += 1
-    } else if state.line < state.topViewLine + VIEWLINEBUFFER && state.topViewLine > 0 {
-        state.topViewLine -= 1
+    if state.line > state.window.topViewLine + maxViewLines(state.window.height) - VIEW_LINE_BUFFER {
+        state.window.topViewLine += 1
+    } else if state.line < state.window.topViewLine + VIEW_LINE_BUFFER && state.window.topViewLine > 0 {
+        state.window.topViewLine -= 1
     }
 }

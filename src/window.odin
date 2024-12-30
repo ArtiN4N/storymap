@@ -22,11 +22,11 @@ WindowObject :: struct {
     width: i32,
     height: i32,
 
+    // The first line number to be displayed in the editor.
+    topViewLine: i32,
+
     // Struct that handles window flags, i.e. fullscreen, resizeable, etc.
     flagManager: FlagManager,
-
-    // The first line number to be displayed in the editor.
-    topViewLine: int,
 }
 
 // A procedure that returns an initialized WindowObject.
@@ -35,9 +35,10 @@ initialWindow :: proc() -> WindowObject {
         width = INITIAL_WINDOW_WIDTH,
         height = INITIAL_WINDOW_HEIGHT,
 
-        flagManager = initialFlagManager(),
 
-        topViewLine = 0
+        topViewLine = 0,
+
+        flagManager = initialFlagManager(),
     }
 }
 
@@ -47,7 +48,7 @@ resetWindow :: proc(window: ^WindowObject) {
 }
 
 // A procedure that returns the maximum number of editor lines that can be displayed for the current window.
-maxViewLines :: proc(height: i32) {
+maxViewLines :: proc(height: i32) -> i32 {
     return (height - TEXT_MARGIN * 2 - INFO_HEIGHT) / LINE_HEIGHT - 1
 }
 
