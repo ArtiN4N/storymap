@@ -71,14 +71,6 @@ destroyState :: proc(state: ^State) {
     
 }
 
-setCharWidth :: proc(state: ^State) {
-    charSize := rl.MeasureTextEx(state.page.font, "a", state.page.fontSize, state.page.fontSpacing)
-    state.charWidth = cast(i32) charSize.x + 2
-    state.lineCharsMax = state.editWidth / state.charWidth - 2
-}
-
-
-
 resetState :: proc(state: ^State) {
     state.topViewLine = 0
 
@@ -93,6 +85,8 @@ resetState :: proc(state: ^State) {
     state.heldKey = rl.KeyboardKey.KEY_NULL
 
     state.menuActive = false
+
+    resetWindow(&state.window)
 
     destroyPage(&state.page)
     createPage(state)
