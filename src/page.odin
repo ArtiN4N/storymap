@@ -5,13 +5,13 @@ import "core:fmt"
 
 import rl "vendor:raylib"
 
-BACKSPACEWAIT :: 0.3
-BACKSPACECYCLE :: BACKSPACEWAIT + 0.025
+BACKSPACE_WAIT :: 0.3
+BACKSPACE_CYCLE :: BACKSPACE_WAIT + 0.025
 
-ENTERWAIT :: 0.3
-ENTERCYCLE :: ENTERWAIT + 0.025
+ENTER_WAIT :: 0.3
+ENTER_CYCLE :: ENTER_WAIT + 0.025
 
-INACTIVETIMER :: 1.0
+INACTIVE_TIMER :: 1.0
 
 ALPHANUMERIC :: [?]bool{
     0x30..=0x39 = true,
@@ -95,16 +95,16 @@ destroyPage :: proc(page: ^Page) {
     rl.UnloadFont(page.symbolsFont)
 }
 
-createPage :: proc(state: ^State) {
+setPage :: proc(state: ^State) {
     state.page = initialPage(state^)
-    rl.SetTextureFilter(state.page.font.texture, rl.TextureFilter.TRILINEAR);
+    rl.SetTextureFilter(state.page.font.texture, .TRILINEAR);
     append(&state.page.text, strings.builder_make())
     append(&state.page.textSplits, make([dynamic]int))
 }
 
 loadPageFromFile :: proc(state: ^State, path: cstring, file: cstring) {
     state.page = initialPage(state^)
-    rl.SetTextureFilter(state.page.font.texture, rl.TextureFilter.TRILINEAR);
+    rl.SetTextureFilter(state.page.font.texture, .TRILINEAR);
 
     state.page.name = string(rl.GetFileNameWithoutExt(file))
     state.page.extension = string(rl.GetFileExtension(file))
@@ -209,11 +209,11 @@ deleteCharacter :: proc(state: ^State) {
 }
 
 backspacePage :: proc(state: ^State) {
-    if !rl.IsKeyDown(rl.KeyboardKey.BACKSPACE) {
+    if !rl.IsKeyDown(.BACKSPACE) {
         return
     }
 
-    if rl.IsKeyPressed(rl.KeyboardKey.BACKSPACE) {
+    if rl.IsKeyPressed(.BACKSPACE) {
         state.backspaceCooldown = 0.0
     }
 
@@ -223,10 +223,10 @@ backspacePage :: proc(state: ^State) {
 
     state.backspaceCooldown += rl.GetFrameTime()
 
-    if state.backspaceCooldown >= BACKSPACEWAIT {
-        if state.backspaceCooldown >= BACKSPACECYCLE {
+    if state.backspaceCooldown >= BACKSPACE_WAIT {
+        if state.backspaceCooldown >= BACKSPACE_CYCLE {
             deleteCharacter(state)
-            state.backspaceCooldown = BACKSPACEWAIT
+            state.backspaceCooldown = BACKSPACE_WAIT
         }
     }
 }
@@ -261,11 +261,11 @@ addNewLine :: proc(state: ^State) {
 }
 
 enterPage :: proc(state: ^State) {
-    if !rl.IsKeyDown(rl.KeyboardKey.ENTER) {
+    if !rl.IsKeyDown(.ENTER) {
         return
     }
 
-    if rl.IsKeyPressed(rl.KeyboardKey.ENTER) {
+    if rl.IsKeyPressed(.ENTER) {
         state.enterCooldown = 0.0
     }
 
@@ -275,10 +275,10 @@ enterPage :: proc(state: ^State) {
 
     state.enterCooldown += rl.GetFrameTime()
 
-    if state.enterCooldown >= ENTERWAIT {
-        if state.enterCooldown >= ENTERCYCLE {
+    if state.enterCooldown >= ENTER_WAIT {
+        if state.enterCooldown >= ENTER_CYCLE {
             addNewLine(state)
-            state.enterCooldown = ENTERWAIT
+            state.enterCooldown = ENTER_WAIT
         }
     }
 }
@@ -344,7 +344,7 @@ updatePage :: proc(state: ^State) {
     state.page.timeSeconds += rl.GetFrameTime()
     state.page.timeSinceLastUpdate += rl.GetFrameTime()
 
-    if state.page.timeSinceLastUpdate <= INACTIVETIMER {
+    if state.page.timeSinceLastUpdate <= INACTIVE_TIMER {
         state.page.timeActiveSeconds += rl.GetFrameTime()
         if state.page.timeActiveSeconds > 60.0 {
             state.page.totalActiveTimeMinutes += 1
