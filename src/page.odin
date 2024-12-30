@@ -13,21 +13,6 @@ ENTER_CYCLE :: ENTER_WAIT + 0.025
 
 INACTIVE_TIMER :: 1.0
 
-ALPHANUMERIC :: [?]bool{
-    0x30..=0x39 = true,
-    0x41..=0x5a = true,
-    0x61..=0x7a = true,
-}
-
-// ACTIONS:
-// move cursor up || move cursor down || move cursor left || move cursor right
-// move cursor to the beginning of the line || move cursor to the end of the line
-// move cursor to the top view line || move cursor to the bottom view line
-// move page view down one || move page view up one || move page view to specific range
-
-
-
-
 Page :: struct {
     editText: [dynamic]strings.Builder,
 
@@ -36,8 +21,6 @@ Page :: struct {
     font: rl.Font,
     fontSize: f32,
     fontSpacing: f32,
-
-    select: PageSelection,
 
     name: string,
     extension: string,
@@ -69,8 +52,6 @@ initialPage :: proc(state: State) -> Page {
         font = rl.LoadFontEx("fonts/Noto_Sans_Mono/NotoSansMono-VariableFont_wdth,wght.ttf", 40, cpoints, 0),
         fontSize = 22,
         fontSpacing = 2,
-
-        select = {},
 
         name = "untitled",
         extension = ".txt",

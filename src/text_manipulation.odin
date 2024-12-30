@@ -5,12 +5,18 @@ import "core:fmt"
 
 import rl "vendor:raylib"
 
+ALPHANUMERIC :: [?]bool{
+    0x30..=0x39 = true,
+    0x41..=0x5a = true,
+    0x61..=0x7a = true,
+}
+
 // A procedure that counts the words in a string.
 // Words are defined as a collection of 1 or more alphanumeric characters,
 // seperated by non-alphanumeric characters, and the beggining and end of a line.
 // The chracters directly before and after the string can be provided, to ensure that word counting of a substring
 // within a larger string remains correct.
-countWordsInString :: proc(working: string, prevChar, endChar: rune, page: ^Page) -> int {
+countWordsInString :: proc(working: string, prevChar, endChar: rune) -> int {
     alphanumeric := ALPHANUMERIC
 
     count := 0
@@ -63,7 +69,10 @@ getCharWithBoundsCheck :: proc(buffer: []u8, index: int, default: u8 = 0x00) -> 
 }
 
 // A procedure that adds a single character to a spot in the edit text array.
-addCharacterToEdit :: proc(editText: ^[dynamic]strings.Builder, toAdd: u8, line, column: int, page: ^Page) {
+addCharacterToEdit :: proc(page: ^Page, editText: ^[dynamic]strings.Builder, cursor: ^Cursor, toAdd: u8) {
+    line := cursor.line
+    column := cursor.line
+
     // Grab a pointer to the buffer of the specific line in the edit text array.
     buf := &editText[line].buf
 
@@ -82,7 +91,10 @@ addCharacterToEdit :: proc(editText: ^[dynamic]strings.Builder, toAdd: u8, line,
 }
 
 // A procedure that adds a string to a spot in the edit text array.
-addStringToEdit :: proc(editText: ^[dynamic]strings.Builder, toAdd: string, line, column: int, page: ^Page) {
+addStringToEdit :: proc(page: ^Page, editText: ^[dynamic]strings.Builder, cursor: ^Cursor, toAdd: string) {
+    line := cursor.line
+    column := cursor.line
+
     // Grab a pointer to the buffer of the specific line in the edit text array.
     buf := &editText[line].buf
 
@@ -93,13 +105,16 @@ addStringToEdit :: proc(editText: ^[dynamic]strings.Builder, toAdd: string, line
     // since the added strings' first character will be placed at column + 1.
     inject_at(buf, column, toAdd)
 
-    incrementWordCount(page, countWordsInString(toAdd, prevChar, nextChar, page))
+    incrementWordCount(page, countWordsInString(toAdd, prevChar, nextChar))
 }
 
 // A procedure that adds a newline to the edit text.
 // A newline splits the current line around the cursor position,
 // creates a new entry into the edit text array, and places the text after the cursor into the new string builder.
-addNewLineToEdit :: proc(editText: ^[dynamic]strings.Builder, line, column: int, page: ^Page) {
+addNewLineToEdit :: proc(page: ^Page, editText: ^[dynamic]strings.Builder, cursor: ^Cursor) {
+    line := cursor.line
+    column := cursor.line
+
     // Grab a pointer to the buffer of the specific line in the edit text array.
     buf := &editText[line].buf
 
@@ -128,21 +143,23 @@ addNewLineToEdit :: proc(editText: ^[dynamic]strings.Builder, line, column: int,
 }
 
 // A procedure that deletes a section of text from the edit text array.
-removeSectionFromEdit :: proc(editText: ^[dynamic]strings.Builder, startLine, startColumn, endLine, endColumn: int, page: ^Page) {
+removeSectionFromEdit :: proc(page: ^Page, editText: ^[dynamic]strings.Builder, cursor: ^Cursor) {
+    selection := cursor.selection
+
     // Stores the edit text builder buffers' pointers for the first and last lines of the selection.
-    buf1 := &editText[startLine].buf
-    buf2 := &editText[endLine].buf
+    buf1 := &editText[selection.startLine].buf
+    buf2 := &editText[selection.endLine].buf
 
     // Retrieves the unaffected text in the lines associated with the selection.
-    bytes1 := buf1[0:startColumn]
-    bytes2 := buf2[endColumn:len(buf2)]
+    bytes1 := buf1[0 : selection.startColumn]
+    bytes2 := buf2[selection.endColumn : len(buf2)]
 
-    prevChar := cast(rune) getCharWithBoundsCheck(buf1[:], startColumn - 1)
-    nextChar := cast(rune) getCharWithBoundsCheck(buf2[:], endColumn + 1)
+    prevChar := cast(rune) getCharWithBoundsCheck(buf1[:], selection.startColumn - 1)
+    nextChar := cast(rune) getCharWithBoundsCheck(buf2[:], selection.endColumn + 1)
 
     // Grabs the removed text from the first and last lines of the selection.
-    removed1 := buf1[startColumn:len(buf1)]
-    removed2 := buf2[0:endColumn]
+    removed1 := buf1[selection.startColumn : len(buf1)]
+    removed2 := buf2[0 : selection.endColumn]
 
     // Creates a string builder to count the number of words in the removed selection.
     countingBuilder := strings.builder_make()
@@ -157,8 +174,8 @@ removeSectionFromEdit :: proc(editText: ^[dynamic]strings.Builder, startLine, st
     // However, we know that, for all lines inbetween the first and the last,
     // All text is to be removed.
     // Thus, we loop through the lines in between, and write the full buffers from the edit text array into the builder.
-    readLine := startLine + 1
-    for readLine < endLine {
+    readLine := selection.startLine + 1
+    for readLine < selection.endLine {
         readBuf := &editText[readLine].buf
         strings.write_bytes(&countingBuilder, readBuf[:])
         strings.write_byte(&countingBuilder, '\n')
@@ -166,23 +183,23 @@ removeSectionFromEdit :: proc(editText: ^[dynamic]strings.Builder, startLine, st
 
     // Writes the removed text in the last line.
     strings.write_bytes(&countingBuilder, removed2)
-    removedWords := countWordsInString(strings.to_string(countingBuilder), prevChar, nextChar, page)
+    removedWords := countWordsInString(strings.to_string(countingBuilder), prevChar, nextChar)
 
     decrementWordCount(page, removedWords)
 
     // Clean up the builder used to count the removed words.
     strings.builder_destroy(&countingBuilder)
 
-    strings.builder_reset(&editText[startLine])
-    strings.builder_reset(&editText[endLine])
+    strings.builder_reset(&editText[selection.startLine])
+    strings.builder_reset(&editText[selection.endLine])
 
     // Write the leftover text into the first and last lines of the selection.
-    strings.write_bytes(&editText[startLine], bytes1)
-    strings.write_bytes(&editText[startLine], bytes2)
+    strings.write_bytes(&editText[selection.startLine], bytes1)
+    strings.write_bytes(&editText[selection.startLine], bytes2)
 
     // Remove and clean up all deleted lines from the edit text array.
-    readLine = startLine + 1
-    for readLine < endLine {
+    readLine = selection.startLine + 1
+    for readLine < selection.endLine {
         readBuilder := &editText[readLine]
         ordered_remove(editText, readLine)
         strings.builder_destroy(readBuilder)

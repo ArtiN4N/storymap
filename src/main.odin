@@ -7,13 +7,6 @@ import rl "vendor:raylib"
 
 EDITOR_COLOR : rl.Color : {0x1e, 0x1e, 0x2e, 0xff}
 
-PageSelection :: struct {
-    linea: int,
-    lineb: int,
-    columna: int,
-    columnb: int,
-}
-
 main :: proc() {
     state := initialState()
     defer destroyState(&state)

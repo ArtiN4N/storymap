@@ -14,9 +14,18 @@ CURSOR_CYCLE :: CURSOR_WAIT + 0.025
 
 VIEW_LINE_BUFFER :: 1
 
+Selection :: struct {
+    startLine: int,
+    endLine: int,
+    startColumn: int,
+    endColumn: int,
+}
+
 Cursor :: struct {
     line: int,
     column: int,
+
+    selection: Selection,
 
     cursorFrame: f32,
     cursorCooldown: f32,
@@ -26,6 +35,8 @@ initialCursor :: proc() -> Cursor {
     return {
         line = 0,
         column = 0,
+
+        selection = {},
 
         cursorFrame = 0.0,
         cursorCooldown = 0.0,
