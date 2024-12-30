@@ -5,7 +5,7 @@ import "core:strings"
 
 import rl "vendor:raylib"
 
-EDITORCOLOR : rl.Color : {0x1e, 0x1e, 0x2e, 0xff}
+EDITOR_COLOR : rl.Color : {0x1e, 0x1e, 0x2e, 0xff}
 
 PageSelection :: struct {
     linea: int,
@@ -20,38 +20,35 @@ main :: proc() {
 
     initializeConfigFlags(&state.window.flagManager)
 
-    rl.InitWindow(state.screenWidth, state.screenHeight, "storymap")
+    rl.InitWindow(state.window.width, state.window.height, "storymap")
     defer rl.CloseWindow()
 
-    createPage(&state)
-    defer destroyPage(&state.page)
-
-    setCharWidth(&state)
+    setPage(&state)
 
     rl.SetExitKey(.KEY_NULL)
-
     rl.SetTargetFPS(30)
 
     for !rl.WindowShouldClose() && !state.close {
         checkShortCuts(&state)
 
         if rl.IsWindowResized() {
-            updateScreenSize(&state)
+            updateWindowSize(&state.window)
         }
 
         if !state.fBox.active {
             updateMenu(&state)
-        }
-        if !state.menuActive && !state.fBox.active {
-            updatePage(&state)
-        }
-        if state.fBox.active {
+
+            if !state.menuActive {
+                updatePage(&state)
+            }
+        } else {
             updateFileBox(&state)
         }
+
         rl.BeginDrawing()
         defer rl.EndDrawing()
 
-        rl.ClearBackground(EDITORCOLOR)
+        rl.ClearBackground(EDITOR_COLOR)
 
         drawLineNumbers(state)
         drawInfo(state)
