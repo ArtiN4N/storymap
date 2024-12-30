@@ -20,8 +20,6 @@ main :: proc() {
 
     initializeConfigFlags(&state.window.flagManager)
 
-    rl.SetExitKey(rl.KeyboardKey.KEY_NULL)
-
     rl.InitWindow(state.screenWidth, state.screenHeight, "storymap")
     defer rl.CloseWindow()
 
@@ -29,6 +27,8 @@ main :: proc() {
     defer destroyPage(&state.page)
 
     setCharWidth(&state)
+
+    rl.SetExitKey(.KEY_NULL)
 
     rl.SetTargetFPS(30)
 
