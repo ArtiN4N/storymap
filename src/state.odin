@@ -45,7 +45,7 @@ initialState :: proc() -> State {
 
         window = initialWindow(),
 
-        shortcuts = scuts,
+        shortcuts = shortcuts,
 
         line = 0,
         column = 0,

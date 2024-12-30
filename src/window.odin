@@ -19,11 +19,11 @@ TOTAL_TEXT_WIDTH :: TOTAL_EDITOR_WIDTH - (SPINE_WIDTH + TEXT_MARGIN * 2)
 // Struct that contains measurements of the open window, along with a manager that handles window flags.
 WindowObject :: struct {
     // Size of the window (in px).
-    width: i32,
-    height: i32,
+    width: int,
+    height: int,
 
     // The first line number to be displayed in the editor.
-    topViewLine: i32,
+    topViewLine: int,
 
     // Struct that handles window flags, i.e. fullscreen, resizeable, etc.
     flagManager: FlagManager,
@@ -35,10 +35,9 @@ initialWindow :: proc() -> WindowObject {
         width = INITIAL_WINDOW_WIDTH,
         height = INITIAL_WINDOW_HEIGHT,
 
-
         topViewLine = 0,
 
-        flagManager = initialFlagManager(),
+        flagManager = {},
     }
 }
 
@@ -48,25 +47,25 @@ resetWindow :: proc(window: ^WindowObject) {
 }
 
 // A procedure that returns the maximum number of editor lines that can be displayed for the current window.
-maxViewLines :: proc(height: i32) -> i32 {
+maxViewLines :: proc(height: int) -> int {
     return (height - TEXT_MARGIN * 2 - INFO_HEIGHT) / LINE_HEIGHT - 1
 }
 
 // A procedure that returns the size of a single char (in px) of the text in the opened file.
 // This assumes a mono font, where all characters have equal sizings
-characterWidth :: proc(font: rl.Font, fontSize, fontSpacing: f32) -> i32 {
+characterWidth :: proc(font: rl.Font, fontSize, fontSpacing: f32) -> int {
     charSize := rl.MeasureTextEx(font, "a", fontSize, fontSpacing)
     return charSize.x + fontSpacing
 }
 
 // A procedure that returns the maximum number of characters that can fit in a line of the editor.
 // This is used to ensure that all writing is visually contained in TOTAL_TEXT_WIDTH.
-maxCharactersPerLine :: proc(characterWidth: i32, fontSpacing: f32) -> i32 {
+maxCharactersPerLine :: proc(characterWidth: int, fontSpacing: f32) -> int {
     return TOTAL_TEXT_WIDTH / characterWidth - fontSpacing
 }
 
 // A procedure that changes a WindowObjects' size, and updates necessary information about editor view.
-changeWindowSize :: proc(window: ^WindowObject, width, height: i32) {
+changeWindowSize :: proc(window: ^WindowObject, width, height: int) {
     window.width = width
     window.height = height
     //logicalHeight = window.height * 3
